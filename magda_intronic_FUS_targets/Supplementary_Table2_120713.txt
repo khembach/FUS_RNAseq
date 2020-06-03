@@ -1,0 +1,336 @@
+Gene_Symbol	Protein	Refseq_identifier	FUS_cluster_Total	FUS_cluster_5UTR	FUS_cluster_introns	FUS_cluster_exons	FUS_cluster_3UTR	FUS_RNAseq_RPKM_FUS_KD	FUS_RNAseq_RPKM_control	FUS_RNAseq_Ratio_KD_control	FUS_RNAseq_Zscore	TDP_cluster_Total	TDP_cluster_5UTR	TDP_cluster_introns	TDP_cluster_exons	TDP_cluster_3UTR	TDP_RNAseq_TDP_KD	TDP_RNAseq_RPKM_control	TDP_RNAseq_Ratio_KD_control	TDP_RNAseq_Zscore
+Fus	Fus protein.	BC011078	21	19	1	0	20	8.611	102.974	0.08	-18.226	8	7	0	0	8	76.515	102.974	0.74	-1.408
+Kcnip4	Potassium channel interacting protein 4.	DQ148504	818	0	818	0	0	2.036	8.522	0.24	-10.561	172	0	172	0	0	3.56	8.522	0.42	-3.645
+Smyd3	SET and MYND domain containing 3	AK087728	219	0	218	0	1	1.692	5.718	0.30	-7.237	53	0	53	0	0	3.05	5.718	0.53	-2.511
+Zfp533	Mus musculus 10 days neonate medulla oblongata cDNA, RIKEN full-length enriched library, clone:B830010L13 product:hypothetical U1-like zinc finger/Zinc finger, C2H2 type containing protein, full insert sequence.	BC048543	276	1	275	0	0	4.058	9.923	0.41	-7.162	56	0	56	0	0	7.45	9.923	0.75	-1.531
+AK079777	Mus musculus 0 day neonate thymus cDNA, RIKEN full-length enriched library, clone:A430065E24 product:unclassifiable, full insert sequence.	AK079777	2	0	0	2	0	0.526	2.613	0.20	-7.108	2	0	0	2	0	1.55	2.613	0.59	-1.857
+Nipa1	non-imprinted in Prader-Willi/Angelman syndrome	NM_153578	12	0	7	1	4	8.299	18.003	0.46	-7.1	4	0	4	0	0	14.483	18.003	0.80	-1.178
+Csmd1	Mus musculus adult male hypothalamus cDNA, RIKEN full-length enriched library, clone:A230054E13 product:CUB and Sushi multiple domains 1, full insert sequence.	AK048698	1056	5	1051	0	3	3.884	9.36	0.41	-7.013	262	0	261	0	1	2.92	9.36	0.31	-4.826
+Prlr	Mus musculus 3 days neonate thymus cDNA, RIKEN full-length enriched library, clone:A630063N04 product:prolactin receptor, full insert sequence.	AK054381	0	0	0	0	0	0.056	0.787	0.07	-6.53	0	0	0	0	0	0.293	0.787	0.37	-2.272
+Tcba1	T-cell lymphoma breakpoint associated target 1	NM_001013411	382	1	381	0	0	7.049	14.143	0.50	-6.132	104	0	103	1	0	2.478	14.143	0.18	-8.086
+AK013627	Mus musculus adult male hippocampus cDNA, RIKEN full-length enriched library, clone:2900040C04 product:unclassifiable, full insert sequence.	AK013627	0	0	0	0	0	0.193	1.394	0.14	-5.851	0	0	0	0	0	0.483	1.394	0.35	-2.637
+AK020190	Mus musculus adult male corpus striatum cDNA, RIKEN full-length enriched library, clone:7630403G23 product:unclassifiable, full insert sequence.	AK020190	0	0	0	0	0	0.065	0.642	0.10	-5.63	0	0	0	0	0	0.029	0.642	0.05	-6.21
+Frmd5	FERM domain-containing protein 5.	AK030883	137	0	137	0	0	6.362	11.813	0.54	-5.45	60	0	60	0	0	8.308	11.813	0.70	-1.722
+Atxn1	ataxin 1	NM_009124	149	0	148	0	1	12.701	22.083	0.58	-5.435	103	0	103	0	0	17.465	22.083	0.79	-1.198
+AK044106	Mus musculus 10 days neonate cortex cDNA, RIKEN full-length enriched library, clone:A830090N19 product:unclassifiable, full insert sequence.	AK044106	0	0	0	0	0	1.677	4.303	0.39	-5.388	0	0	0	0	0	2.783	4.303	0.65	-1.788
+Susd4	sushi domain containing 4	NM_144796	48	1	46	1	0	8.285	14.77	0.56	-5.1	23	0	23	0	0	12.523	14.77	0.85	-0.959
+C030017K20Rik	Mus musculus adult male corpus striatum cDNA, RIKEN full-length enriched library, clone:C030017K20 product:unclassifiable, full insert sequence.	AK047723	1	0	0	1	0	0.536	2.115	0.25	-4.966	0	0	0	0	0	2.125	2.115	1.00	-0.38
+BC042720	MKIAA1843 protein (Fragment).	AK173273	50	3	39	1	7	15.373	25.553	0.60	-4.942	5	0	5	0	0	14.96	25.553	0.59	-2.676
+AK031234	Mus musculus 18-day embryo whole body cDNA, RIKEN full-length enriched library, clone:1110004P21 product:unclassifiable, full insert sequence.	AK031234	10	0	8	2	0	2.713	5.787	0.47	-4.936	0	0	0	0	0	4.058	5.787	0.70	-1.616
+C030018G13Rik	Uncharacterized protein C2orf21 homolog.	AK043914	26	0	21	3	2	7.617	13.382	0.57	-4.934	11	0	11	0	0	6.23	13.382	0.47	-3.52
+Agt	angiotensinogen	NM_007428	0	0	0	0	0	1.93	4.586	0.42	-4.925	0	0	0	0	0	5.023	4.586	1.10	0.052
+AK142681	Mus musculus 10 days lactation, adult female mammary gland cDNA, RIKEN full-length enriched library, clone:D730047O05 product:MSZF33 homolog [Mus musculus], full insert sequence.	AK142681	0	0	0	0	0	7.233	12.444	0.58	-4.871	0	0	0	0	0	11.643	12.444	0.94	-0.45
+AK045970	Mus musculus 0 day neonate head cDNA, RIKEN full-length enriched library, clone:4831422N07 product:similar to KRUPPEL-RELATED ZINC FINGER PROTEIN F80-L [Mus musculus], full insert sequence.	AK045970	6	0	4	0	2	20.193	35.546	0.57	-4.867	1	0	1	0	0	34.994	35.546	0.98	-0.079
+Traip	TRAF-interacting protein	NM_011634	5	0	5	0	0	3.131	6.322	0.50	-4.787	1	0	1	0	0	7.937	6.322	1.26	0.668
+FuK	Mus musculus mRNA for L-fucose kinase (FuK gene), shorter splice variant.	AK161763	1	0	0	0	1	1.85	4.265	0.43	-4.737	1	0	1	0	0	3.807	4.265	0.89	-0.701
+BC094615	Mus musculus cDNA clone IMAGE:30134658.	BC094615	0	0	0	0	0	0.076	0.513	0.15	-4.646	0	0	0	0	0	0.265	0.513	0.52	-1.663
+Mal	Adult male stomach cDNA, RIKEN full-length enriched library, clone:2200001M24 product:myelin and lymphocyte protein, T-cell differentiation protein, full insert sequence.	AK019046	7	0	0	1	6	27.604	50.313	0.55	-4.509	3	0	2	0	1	48.394	50.313	0.96	-0.191
+Agxt2l1	Mus musculus adult male liver cDNA, RIKEN full-length enriched library, clone:1300019H02 product:similar to ALANINE:GLYOXYLATE AMINOTRANSFERASE 2 HOMOLOG 1, SPLICE FORM 1 [Homo sapiens], full insert sequence.	BC022644	1	0	1	0	0	1.487	3.288	0.45	-4.392	0	0	0	0	0	2.748	3.288	0.84	-0.918
+BC019819	Mus musculus activated spleen cDNA, RIKEN full-length enriched library, clone:F830224N14 product:unclassifiable, full insert sequence.	BC019819	0	0	0	0	0	0.935	2.432	0.38	-4.368	0	0	0	0	0	1.622	2.432	0.67	-1.527
+Gm1337	hypothetical protein LOC383787	NM_001081971	0	0	0	0	0	18.678	29.193	0.64	-4.329	0	0	0	0	0	30.039	29.193	1.03	0.138
+Tnfrsf25	tumor necrosis factor receptor superfamily,	NM_033042	1	0	1	0	0	0.312	1.374	0.23	-4.315	1	0	1	0	0	0.848	1.374	0.62	-1.434
+Hba-a2	hemoglobin alpha, adult chain 2	NM_001083955	0	0	0	0	0	1.037	2.55	0.41	-4.278	0	0	0	0	0	2.371	2.55	0.93	-0.544
+Darc	Duffy blood group	NM_010045	2	1	0	1	0	8.75	14.187	0.62	-4.271	1	0	0	1	0	18.29	14.187	1.29	1.151
+mKIAA0054	Mus musculus mRNA for mKIAA0054 protein.	BC060114	27	3	23	1	0	3.956	7.069	0.56	-4.253	31	0	29	0	2	7.74	7.069	1.09	0.144
+Stac3	SH3 and cysteine rich domain 3	NM_177707	2	0	2	0	0	0.363	1.476	0.25	-4.22	0	0	0	0	0	0.945	1.476	0.64	-1.411
+Hist1h1c	histone 1, H1c	NM_015786	1	0	0	1	0	6.072	9.938	0.61	-4.089	0	0	0	0	0	13.681	9.938	1.38	1.346
+Clic6	chloride intracellular channel 6	NM_172469	0	0	0	0	0	2.267	4.699	0.48	-4.079	0	0	0	0	0	3.849	4.699	0.82	-0.992
+AK048846	Mus musculus adult male diencephalon cDNA, RIKEN full-length enriched library, clone:9330156G04 product:unclassifiable, full insert sequence.	AK048846	7	0	0	7	0	3.429	6.179	0.55	-4.078	1	0	0	1	0	5.145	6.179	0.83	-0.965
+Epb4.1	erythrocyte protein band 4.1	BC068138	93	1	57	0	35	7.956	12.576	0.63	-4.052	20	2	18	0	0	9.148	12.576	0.73	-1.572
+Peli1	Mus musculus pellino 1 (Peli1) mRNA, complete cds.	AK020915	20	1	17	0	2	8.564	13.42	0.64	-3.986	4	2	2	0	0	15.201	13.42	1.13	0.483
+B230206H07Rik	hypothetical protein LOC320871	NM_177280	0	0	0	0	0	1.348	2.875	0.47	-3.972	0	0	0	0	0	2.41	2.875	0.84	-0.843
+Mcam	Cell surface glycoprotein MUC18 precursor (Melanoma-associated antigen MUC18) (Melanoma cell adhesion molecule) (Gicerin).	AB035509	0	0	0	0	0	1.986	4.007	0.50	-3.945	0	0	0	0	0	8.295	4.007	2.07	2.558
+Pip5k1b	phosphatidylinositol-4-phosphate 5-kinase, type	NM_008846	32	0	32	0	0	0.795	2.085	0.38	-3.917	22	0	22	0	0	1.634	2.085	0.78	-1.061
+Dnajc1	Mus musculus 11 days embryo whole body cDNA, RIKEN full-length enriched library, clone:2700069B04 product:DnaJ (Hsp40) homolog, subfamily C, member 1, full insert sequence.	BC052544	42	3	37	0	4	1.384	2.902	0.48	-3.895	7	0	7	0	0	3.389	2.902	1.17	0.175
+Npr2	natriuretic peptide receptor 2	BC049896	2	0	2	0	0	4.474	7.506	0.60	-3.889	1	0	1	0	0	8.408	7.506	1.12	0.25
+Col8a2	procollagen, type VIII, alpha 2	NM_199473	0	0	0	0	0	0.383	1.402	0.27	-3.876	0	0	0	0	0	0.568	1.402	0.41	-2.311
+BC031853	amino acid transporter	NM_172758	0	0	0	0	0	4.902	8.07	0.61	-3.843	1	0	1	0	0	9.561	8.07	1.18	0.536
+Park2	parkin	NM_016694	160	0	160	0	0	0.633	1.909	0.33	-3.759	66	0	66	0	0	0.485	1.909	0.25	-3.479
+Grin2b	glutamate receptor, ionotropic, NMDA2B (epsilon	NM_008171	247	0	242	2	3	19.645	28.924	0.68	-3.746	125	0	118	0	7	23.478	28.924	0.81	-1.017
+Nrxn3	neurexin III	BC060719	1138	4	1130	0	7	20.695	30.662	0.67	-3.737	339	0	339	0	0	15.939	30.662	0.52	-3.31
+Selplg	selectin, platelet (p-selectin) ligand	NM_009151	1	0	1	0	0	6.336	9.859	0.64	-3.73	1	0	1	0	0	10.911	9.859	1.11	0.283
+1500015O10Rik	esophageal cancer related gene 4 protein	NM_024283	0	0	0	0	0	0.514	1.66	0.31	-3.684	0	0	0	0	0	1.181	1.66	0.71	-1.275
+Plekhn1	Mus musculus 16 days embryo head cDNA, RIKEN full-length enriched library, clone:C130033N06 product:inferred: hypothetical protein {Homo sapiens}, full insert sequence.	BC046544	0	0	0	0	0	3.32	5.777	0.57	-3.665	0	0	0	0	0	6.285	5.777	1.09	0.061
+Gpsm1	G-protein signalling modulator 1 (AGS3-like, C.	BC071197	18	2	14	1	1	4.423	7.187	0.62	-3.633	2	0	2	0	0	7.155	7.187	1.00	-0.273
+Kcna4	potassium voltage-gated channel, shaker-related	NM_021275	4	0	0	1	3	12.254	17.755	0.69	-3.586	7	0	3	1	3	12.716	17.755	0.72	-1.757
+Lrp1b	Mus musculus low density lipoprotein receptor related protein LRP1B/LRP-DIT mRNA, complete cds.	AK035795	819	23	796	0	10	2.861	5.09	0.56	-3.556	142	1	141	0	0	2.015	5.09	0.40	-3.449
+Nrxn1	neurexin I	BC047146	839	9	808	0	29	29.006	46.335	0.63	-3.535	253	1	247	0	6	32.019	46.335	0.69	-1.749
+Efhd1	EF hand domain containing 1	NM_028889	0	0	0	0	0	6.752	10.048	0.67	-3.484	0	0	0	0	0	9.087	10.048	0.90	-0.604
+AK145079	Mus musculus mammary gland RCB-0526 Jyg-MC(A) cDNA, RIKEN full-length enriched library, clone:G830038D20 product:unclassifiable, full insert sequence.	AK145079	0	0	0	0	0	2.572	4.745	0.54	-3.473	0	0	0	0	0	4.726	4.745	1.00	-0.303
+9330155M09Rik	hypothetical protein LOC320756	NM_177254	1	0	0	0	1	1.131	2.381	0.48	-3.473	1	0	0	0	1	2.833	2.381	1.19	0.189
+Baiap3	Mus musculus BAI1-associated protein 3, mRNA (cDNA clone IMAGE:4220403), partial cds.	AK122358	0	0	0	0	0	1.424	2.776	0.51	-3.459	0	0	0	0	0	3.281	2.776	1.18	0.188
+Efcbp2	neuronal calcium-binding protein 2	NM_054095	0	0	0	0	0	12.969	18.462	0.70	-3.428	0	0	0	0	0	18.603	18.462	1.01	-0.011
+Trpm3	transient receptor potential cation channel,	NM_001035241	372	2	365	0	6	5.726	8.767	0.65	-3.397	78	0	77	0	1	6.495	8.767	0.74	-1.627
+Frmpd4	FERM and PDZ domain containing 4	NM_001033330	220	0	220	0	0	9.907	14.524	0.68	-3.374	95	0	95	0	0	8.87	14.524	0.61	-2.386
+Acta2	actin, alpha 2, smooth muscle, aorta	NM_007392	0	0	0	0	0	1.021	2.208	0.46	-3.371	0	0	0	0	0	2.073	2.208	0.94	-0.557
+mKIAA1568	Mus musculus 12 days embryo embryonic body between diaphragm region and neck cDNA, RIKEN full-length enriched library, clone:9430089E08 product:ROUNDABOUT2 PROTEIN (FRAGMENT) homolog [Gallus gallus], full insert sequence.	BC055333	159	6	150	0	8	11.417	16.27	0.70	-3.363	58	0	58	0	0	11.17	16.27	0.69	-2.018
+Wdr78	WD repeat domain 78	NM_146254	2	0	1	0	1	1.534	2.873	0.53	-3.284	4	0	4	0	0	3.917	2.873	1.36	0.699
+Tmem28	Tmem28 protein.	BC117535	536	0	535	0	1	7.259	10.463	0.69	-3.262	148	0	148	0	0	5.204	10.463	0.50	-3.309
+Klf16	Kruppel-like factor 16	NM_078477	1	0	0	0	1	14.416	20.04	0.72	-3.246	0	0	0	0	0	14.02	20.04	0.70	-1.851
+Otx2	orthodenticle homolog 2	BC017609	0	0	0	0	0	0.167	0.658	0.25	-3.228	0	0	0	0	0	0.453	0.658	0.69	-1.121
+Alg14	asparagine-linked glycosylation 14 homolog	NM_024178	0	0	0	0	0	1.646	3.006	0.55	-3.22	1	0	1	0	0	4.173	3.006	1.39	0.789
+AK078363	Mus musculus adult male corpora quadrigemina cDNA, RIKEN full-length enriched library, clone:B230303A05 product:similar to U1 SMALL NUCLEAR RIBONUCLEOPROTEIN C (U1-C) [Mus musculus], full insert sequence.	AK078363	32	0	32	0	0	2.806	4.913	0.57	-3.22	13	0	12	1	0	4.824	4.913	0.98	-0.354
+Krt18	keratin 18	NM_010664	0	0	0	0	0	0.152	0.594	0.26	-3.205	0	0	0	0	0	0.262	0.594	0.44	-1.958
+Pbx1	pre B-cell leukemia transcription factor 1	L27453	276	0	265	1	10	27.2	41.31	0.66	-3.178	104	0	94	0	10	35.493	41.31	0.86	-0.722
+Hap1	huntingtin-associated protein 1	NM_010404	5	0	0	1	4	24.572	35.263	0.70	-3.161	0	0	0	0	0	37.824	35.263	1.07	0.307
+Gpr101	G protein-coupled receptor 101	NM_001033360	0	0	0	0	0	0.645	1.715	0.38	-3.157	0	0	0	0	0	2.845	1.715	1.66	1.057
+Lhfpl3	lipoma HMGIC fusion partner-like 3	NM_001081231	105	0	105	0	0	5.51	8.237	0.67	-3.133	37	0	37	0	0	9.31	8.237	1.13	0.34
+Slc24a4	Sodium/potassium/calcium exchanger 4 precursor (Na(+)/K(+)/Ca(2+)-exchange protein 4)	AK044239	13	0	12	0	1	9.287	13.328	0.70	-3.131	11	0	11	0	0	9.608	13.328	0.72	-1.632
+Ksr2	Kinase suppressor of Ras 2	DQ531035	19	0	19	0	0	6.763	9.787	0.69	-3.103	23	0	23	0	0	6.702	9.787	0.68	-1.917
+Unc13c	unc13 homolog 3	NM_001081153	23	0	22	1	0	17.377	23.971	0.72	-3.102	35	0	35	0	0	19.065	23.971	0.80	-1.176
+Cacna1h	calcium channel alpha13.2 subunit	NM_021415	2	0	2	0	0	11.716	16.207	0.72	-3.101	0	0	0	0	0	14.097	16.207	0.87	-0.82
+Prelp	proline arginine-rich end leucine-rich repeat	NM_054077	0	0	0	0	0	4.899	7.48	0.65	-3.101	0	0	0	0	0	10.641	7.48	1.42	1.351
+Cd74	CD74 antigen isoform 1	NM_001042605	0	0	0	0	0	1.798	3.168	0.57	-3.089	0	0	0	0	0	7.157	3.168	2.26	2.872
+Dlgap1	discs large homolog-associated protein 1 isoform	AK031410	318	9	306	0	10	22.528	32.303	0.70	-3.084	144	0	144	0	0	21.056	32.303	0.65	-2.082
+Kcns2	K+ voltage-gated channel, subfamily S, 2	NM_181317	0	0	0	0	0	6.07	8.923	0.68	-3.075	0	0	0	0	0	5.641	8.923	0.63	-2.24
+BC033915	hypothetical protein LOC70661	NM_027498	91	0	91	0	0	17.828	24.58	0.73	-3.072	50	0	50	0	0	29.863	24.58	1.21	0.935
+Lcn2	lipocalin 2	NM_008491	0	0	0	0	0	0.27	0.999	0.27	-3.065	0	0	0	0	0	3.747	0.999	3.75	3.455
+Zmym3	Zmym3 protein.	AK082075	5	0	3	0	2	22.395	31.109	0.72	-3.065	1	0	0	0	1	29.733	31.109	0.96	-0.209
+Inha	inhibin alpha	NM_010564	6	1	4	1	0	7.095	10.077	0.70	-3.058	0	0	0	0	0	8.621	10.077	0.86	-0.869
+Scube3	signal peptide, CUB domain, EGF-like 3	NM_001004366	0	0	0	0	0	2.107	3.677	0.57	-3.042	0	0	0	0	0	2.965	3.677	0.81	-1.017
+Ass1	argininosuccinate synthetase	NR_002687	0	0	0	0	0	6.856	9.73	0.70	-3.013	0	0	0	0	0	11.301	9.73	1.16	0.515
+Arsg	Arylsulfatase G	NM_028710	0	0	0	0	0	4.024	6.183	0.65	-3.013	4	0	4	0	0	4.53	6.183	0.73	-1.459
+Tmem16b	Adult male testis cDNA, RIKEN full-length enriched library, clone:4930527E21 product:transmembrane protein 16B, full insert sequence.	AK132944	0	0	0	0	0	1.419	2.62	0.54	-3.011	1	0	1	0	0	2.373	2.62	0.91	-0.615
+Ndst4	N-deacetylase/N-sulfotransferase (heparin	AK140992	0	0	0	0	0	0.2	0.726	0.28	-3.009	2	0	1	0	1	1.469	0.726	2.02	1.141
+Sox12	SRY-box containing gene 12	NM_011438	1	0	0	0	1	4.84	7.294	0.66	-3.007	0	0	0	0	0	8.859	7.294	1.21	0.609
+Enpp2	ectonucleotide pyrophosphatase/phosphodiesterase	AK038940	45	8	29	0	13	31.783	47.113	0.67	-3.006	18	0	16	0	2	40.755	47.113	0.87	-0.691
+Zbtb20	zinc finger and BTB domain containing 20	BC056446	244	9	230	0	10	3.775	5.867	0.64	-2.997	53	0	53	0	0	16.24	5.867	2.77	4.495
+Xkr6	X Kell blood group precursor related family	NM_173393	154	1	152	1	0	2.041	3.532	0.58	-2.984	51	0	51	0	0	3.104	3.532	0.88	-0.736
+1700029J07Rik	hypothetical protein LOC69479	BC107256	2	2	0	0	0	2.454	4.243	0.58	-2.98	0	0	0	0	0	4.686	4.243	1.10	0.072
+Ache	acetylcholinesterase	AK036259	2	2	0	0	0	9.546	13.409	0.71	-2.975	1	1	0	0	0	11.554	13.409	0.86	-0.853
+AK084074	Mus musculus 16 days embryo head cDNA, RIKEN full-length enriched library, clone:C130060K15 product:unclassifiable, full insert sequence.	AK084074	57	0	40	10	7	7.268	10.148	0.72	-2.969	30	0	28	2	0	7.123	10.148	0.70	-1.828
+Cpne5	Mus musculus 10 days neonate cortex cDNA, RIKEN full-length enriched library, clone:A830083G22 product:COPINE-LIKE PROTEIN KIAA1599 homolog [Homo sapiens], full insert sequence.	AK147529	0	0	0	0	0	23.656	33.251	0.71	-2.962	8	1	7	0	1	33.845	33.251	1.02	0.077
+BC072620	hypothetical protein LOC237403	NM_001013758	1	0	1	0	0	15.729	21.2	0.74	-2.952	1	0	1	0	0	22.303	21.2	1.05	0.232
+Dbp	D site albumin promoter binding protein	NM_016974	2	0	2	0	0	9.511	13.338	0.71	-2.939	0	0	0	0	0	22.132	13.338	1.66	2.366
+BC002059	hypothetical protein LOC213811	NM_145397	2	0	2	0	0	4.724	7.012	0.67	-2.916	0	0	0	0	0	6.915	7.012	0.99	-0.328
+Pcdh9	protocadherin 9	NM_001081377	827	1	824	1	1	18.344	24.774	0.74	-2.907	184	0	183	1	0	12.178	24.774	0.49	-3.709
+Peg10	paternally expressed 10 isoform RF1/RF2	NM_130877	0	0	0	0	0	6.374	9.122	0.70	-2.907	0	0	0	0	0	10.098	9.122	1.11	0.249
+Kirrel2	kin of IRRE-like 2	NM_172898	0	0	0	0	0	0.989	1.998	0.49	-2.902	0	0	0	0	0	0.715	1.998	0.36	-2.864
+Cntnap2	contactin associated protein-like 2 isoform b	NM_025771	1144	4	1140	0	0	14.096	18.847	0.75	-2.883	190	0	190	0	0	9.309	18.847	0.49	-3.648
+AK047676	Mus musculus adult retina cDNA, RIKEN full-length enriched library, clone:A930027I11 product:unclassifiable, full insert sequence.	AK047676	0	0	0	0	0	15.206	20.313	0.75	-2.882	0	0	0	0	0	15.337	20.313	0.76	-1.452
+Fa2h	fatty acid 2-hydroxylase	NM_178086	0	0	0	0	0	11.258	15.403	0.73	-2.85	1	0	1	0	0	13.916	15.403	0.90	-0.624
+Ahi1	Mus musculus adult male testis cDNA, RIKEN full-length enriched library, clone:1700015F03 product:RIKEN cDNA 1700015F03 gene, full insert sequence.	BC055400	71	1	58	3	9	20.528	27.429	0.75	-2.837	17	0	16	0	1	28.018	27.429	1.02	0.093
+Cep63	centrosomal protein 63	NM_001081122	1	0	0	0	1	9.743	13.514	0.72	-2.835	4	0	2	0	2	10.962	13.514	0.81	-1.14
+Ccdc88c	coiled-coil domain containing 88C	NM_026681	2	0	2	0	0	10.975	15.015	0.73	-2.832	3	0	3	0	0	13.309	15.015	0.89	-0.729
+Vegf	Vascular endothelial growth factor A precursor (VEGF-A) (Vascular permeability factor) (VPF).	AY263146	5	0	3	0	2	14.837	19.724	0.75	-2.817	4	0	1	0	3	13.574	19.724	0.69	-1.931
+Efs	embryonal Fyn-associated substrate	NM_010112	0	0	0	0	0	1.351	2.437	0.55	-2.816	0	0	0	0	0	2.796	2.437	1.15	0.085
+Tshz2	teashirt zinc finger family member 2	AK046877	13	0	13	0	0	2.121	3.545	0.60	-2.803	46	0	46	0	0	3.361	3.545	0.95	-0.486
+Dok3	docking protein 3	NM_013739	0	0	0	0	0	2.488	4.148	0.60	-2.795	0	0	0	0	0	4.715	4.148	1.14	0.174
+Nrp1	neuropilin 1	AK082992	3	0	3	0	0	3.374	5.248	0.64	-2.777	16	0	16	0	0	6.169	5.248	1.18	0.338
+U69888	Mus musculus adult male corpora quadrigemina cDNA, RIKEN full-length enriched library, clone:B230105C16 product:Mus musculus Ipw gene, exon B, full insert sequence.	U69888	43	0	43	0	0	0.939	1.905	0.49	-2.774	11	0	11	0	0	1.066	1.905	0.56	-1.889
+AK144367	Mus musculus 0 day neonate cortex cDNA, RIKEN full-length enriched library, clone:G630041N23 product:unclassifiable, full insert sequence.	AK144367	1	0	1	0	0	2.43	4.045	0.60	-2.771	1	0	1	0	0	4.757	4.045	1.18	0.299
+Chrm4	cholinergic receptor, muscarinic 4	NM_007699	0	0	0	0	0	13.446	17.888	0.75	-2.77	0	0	0	0	0	15.8	17.888	0.88	-0.709
+BC048080	Mus musculus 0 day neonate head cDNA, RIKEN full-length enriched library, clone:4833432E10 product:unclassifiable, full insert sequence.	BC048080	0	0	0	0	0	2.168	3.613	0.60	-2.767	0	0	0	0	0	4.17	3.613	1.15	0.207
+Ankrd43	ankyrin repeat domain 43	NM_183173	1	0	0	0	1	24.707	33.81	0.73	-2.749	1	0	0	0	1	30.483	33.81	0.90	-0.483
+BC005764	plasticity-related protein 2	NM_181681	0	0	0	0	0	16.711	22.012	0.76	-2.74	1	0	1	0	0	19.456	22.012	0.88	-0.649
+Flt1	FMS-like tyrosine kinase 1	AK146906	0	0	0	0	0	6.196	8.744	0.71	-2.738	5	0	5	0	0	8.97	8.744	1.03	-0.098
+Ccdc135	coiled-coil domain containing 135	NM_001042715	0	0	0	0	0	0.723	1.68	0.43	-2.734	0	0	0	0	0	1.297	1.68	0.77	-1.094
+9030617O03Rik	hypothetical protein LOC217830	AK081256	0	0	0	0	0	1.415	2.486	0.57	-2.732	1	0	1	0	0	1.949	2.486	0.78	-1.047
+Slc2a12	solute carrier family 2 (facilitated glucose	NM_178934	0	0	0	0	0	0.46	1.221	0.38	-2.731	0	0	0	0	0	0.82	1.221	0.67	-1.238
+Htr1d	5-hydroxytryptamine (serotonin) receptor 1D	NM_008309	0	0	0	0	0	2.901	4.702	0.62	-2.724	0	0	0	0	0	4.999	4.702	1.06	-0.059
+Pkd2l1	polycystic kidney disease 2-like 1	NM_181422	0	0	0	0	0	0.173	0.563	0.31	-2.721	0	0	0	0	0	0.686	0.563	1.22	-0.057
+Tacr1	tachykinin receptor 1	NM_009313	0	0	0	0	0	3.92	5.815	0.67	-2.718	0	0	0	0	0	4.385	5.815	0.75	-1.365
+Arl4d	ADP-ribosylation factor-like 4D	NM_025404	0	0	0	0	0	16.194	21.378	0.76	-2.716	0	0	0	0	0	14.373	21.378	0.67	-2.021
+March4	membrane-associated ring finger (C3HC4) 4	NM_001045533	3	0	3	0	0	7.141	9.792	0.73	-2.712	2	0	2	0	0	8.361	9.792	0.85	-0.894
+Dtx3	deltex 3	NM_030714	1	1	0	0	0	14.551	19.124	0.76	-2.697	0	0	0	0	0	16.11	19.124	0.84	-0.918
+AK017144	Mus musculus 11 days pregnant adult female ovary and uterus cDNA, RIKEN full-length enriched library, clone:5031434O11 product:unclassifiable, full insert sequence.	AK017144	0	0	0	0	0	1.031	1.984	0.52	-2.684	3	0	0	3	0	2.135	1.984	1.08	-0.191
+Slc25a12	solute carrier family 25 (mitochondrial carrier,	NM_172436	36	0	32	4	0	19.447	25.573	0.76	-2.677	18	0	18	0	0	23.975	25.573	0.94	-0.326
+Grm4	glutamate receptor, metabotropic 4	NM_001013385	71	0	69	1	1	10.625	14.234	0.75	-2.665	39	0	38	0	1	12.75	14.234	0.90	-0.684
+A430110N23Rik	hypothetical protein LOC269855	NM_173008	0	0	0	0	0	0.575	1.397	0.41	-2.658	1	0	1	0	0	2.263	1.397	1.62	0.924
+Abhd3	abhydrolase domain containing 3	NM_134130	2	0	1	0	1	8.31	11.24	0.74	-2.657	1	0	1	0	0	10.543	11.24	0.94	-0.434
+Wnk4	WNK lysine deficient protein kinase 4	NM_175638	0	0	0	0	0	0.923	1.828	0.50	-2.645	0	0	0	0	0	1.596	1.828	0.87	-0.772
+AK005503	Mus musculus adult female placenta cDNA, RIKEN full-length enriched library, clone:1600020E01 product:unclassifiable, full insert sequence.	AK005503	1	0	1	0	0	2.538	4.136	0.61	-2.623	2	0	2	0	0	3.52	4.136	0.85	-0.86
+Kif17	kinesin family member 17	NM_010623	4	0	4	0	0	5.976	8.353	0.72	-2.619	7	1	6	0	1	7.218	8.353	0.86	-0.908
+Trim72	tripartite motif-containing 72	NM_001079932	0	0	0	0	0	0.167	0.522	0.32	-2.614	0	0	0	0	0	0.226	0.522	0.43	-1.992
+Lrrc7	leucine rich repeat containing 7	AK122498	183	0	178	5	0	10.075	13.616	0.74	-2.607	57	0	57	0	0	9.522	13.616	0.70	-1.78
+AK161480	Mus musculus adult male testis cDNA, RIKEN full-length enriched library, clone:1700003P12 product:RIKEN cDNA 4933432I09 gene, full insert sequence.	AK161480	0	0	0	0	0	0.456	1.156	0.39	-2.589	0	0	0	0	0	0.524	1.156	0.45	-1.987
+AK019348	Mus musculus adult male hippocampus cDNA, RIKEN full-length enriched library, clone:2900042K03 product:unclassifiable, full insert sequence.	AK019348	1	0	0	1	0	2.86	4.518	0.63	-2.579	0	0	0	0	0	3.312	4.518	0.73	-1.372
+Doc2b	double C2, beta	NM_007873	0	0	0	0	0	16.888	21.88	0.77	-2.577	5	0	5	0	0	24.012	21.88	1.10	0.469
+Nudt16	Mus musculus adult male tongue cDNA, RIKEN full-length enriched library, clone:2310041H06 product:hypothetical NUDIX hydrolase containing protein, full insert sequence.	AK012920	0	0	0	0	0	2.438	3.928	0.62	-2.57	0	0	0	0	0	4.906	3.928	1.25	0.514
+Rim	Mus musculus partial mRNA for Rim, splice variant 1.	AK090169	365	8	357	0	7	9.82	13.176	0.75	-2.556	102	0	102	0	0	6.027	13.176	0.46	-3.484
+Lrrc6	leucine rich repeat containing 6 (testis)	NM_019457	0	0	0	0	0	1.496	2.534	0.59	-2.529	0	0	0	0	0	1.615	2.534	0.64	-1.657
+Slc13a4	solute carrier family 13 (sodium/sulfate	AK139428	0	0	0	0	0	0.779	1.691	0.46	-2.524	0	0	0	0	0	1.04	1.691	0.62	-1.573
+AK085944	Mus musculus 13 days embryo lung cDNA, RIKEN full-length enriched library, clone:D430020J02 product:similar to ENVELOPE PROTEIN (FRAGMENT) [Friend spleen focus-forming virus], full insert sequence.	AK085944	0	0	0	0	0	1.826	2.93	0.62	-2.521	0	0	0	0	0	2.864	2.93	0.98	-0.418
+Micall1	MICAL-like protein 1 (Molecule interacting with Rab13) (MIRab13).	AK031386	2	1	0	0	2	10.286	13.731	0.75	-2.514	5	0	5	0	0	12.145	13.731	0.88	-0.725
+1200009O22Rik	hypothetical protein LOC66873	NM_025817	0	0	0	0	0	7.543	10.039	0.75	-2.511	2	0	0	0	2	10.838	10.039	1.08	0.176
+Rxrb	retinoid X receptor beta	M84818	0	0	0	0	0	8.607	11.508	0.75	-2.509	0	0	0	0	0	8.767	11.508	0.76	-1.361
+Hes5	hairy and enhancer of split 5	NM_010419	0	0	0	0	0	2.926	4.567	0.64	-2.509	0	0	0	0	0	3.004	4.567	0.66	-1.758
+Igf2	insulin-like growth factor 2	NM_010514	0	0	0	0	0	13.299	17.254	0.77	-2.497	0	0	0	0	0	14.843	17.254	0.86	-0.859
+AK148126	Mus musculus 7 days neonate cerebellum cDNA, RIKEN full-length enriched library, clone:A730084D15 product:unclassifiable, full insert sequence.	AK148126	0	0	0	0	0	0.568	1.343	0.42	-2.481	0	0	0	0	0	1.247	1.343	0.93	-0.569
+Rbmx	RNA binding motif protein, X-linked	AK165006	15	0	2	0	13	14.826	19.044	0.78	-2.476	1	0	1	0	0	17.624	19.044	0.93	-0.445
+Fgf11	fibroblast growth factor 11	NM_010198	0	0	0	0	0	1.352	2.306	0.59	-2.474	0	0	0	0	0	2.431	2.306	1.05	-0.195
+Podxl	podocalyxin-like	NM_013723	0	0	0	0	0	5.062	7.113	0.71	-2.471	0	0	0	0	0	8.963	7.113	1.26	0.765
+Gdf10	growth differentiation factor 10	NM_145741	1	0	0	0	1	0.917	1.798	0.51	-2.471	0	0	0	0	0	1.199	1.798	0.67	-1.489
+Jph4	junctophilin 4 isoform a	NM_177049	14	0	4	0	10	57.606	79.164	0.73	-2.465	4	0	1	0	3	69.172	79.164	0.87	-0.644
+C030030A07Rik	hypothetical protein LOC654818	NM_001039558	0	0	0	0	0	1.959	3.101	0.63	-2.456	0	0	0	0	0	2.926	3.101	0.94	-0.527
+AK080292	Mus musculus 3 days neonate thymus cDNA, RIKEN full-length enriched library, clone:A630034I12 product:unclassifiable, full insert sequence.	AK080292	0	0	0	0	0	2.411	3.835	0.63	-2.454	1	0	1	0	0	4.384	3.835	1.14	0.174
+Shkbp1	Sh3kbp1 binding protein 1	AK160641	0	0	0	0	0	2.366	3.734	0.63	-2.452	1	0	1	0	0	4.599	3.734	1.23	0.455
+Ptprv	protein tyrosine phosphatase, receptor type, V	NM_007955	0	0	0	0	0	4.091	5.865	0.70	-2.45	0	0	0	0	0	4.875	5.865	0.83	-0.979
+AK082896	Mus musculus 7 days embryo whole body cDNA, RIKEN full-length enriched library, clone:C430010C01 product:inferred: GLUT4 enhancer factor {Homo sapiens}, full insert sequence.	AK082896	2	0	0	2	0	2.9	4.484	0.65	-2.445	1	0	1	0	0	3.948	4.484	0.88	-0.73
+Enox1	Mus musculus adult male corpora quadrigemina cDNA, RIKEN full-length enriched library, clone:B230207J08 product:hypothetical RNA-binding domain, RBD structure containing protein, full insert sequence.	AK045500	210	0	208	1	1	3.781	5.493	0.69	-2.443	52	0	52	0	0	5.609	5.493	1.02	-0.202
+Slc10a4	solute carrier family 10 (sodium/bile acid	NM_173403	0	0	0	0	0	1.573	2.6	0.61	-2.435	0	0	0	0	0	1.125	2.6	0.43	-2.694
+Me3	malic enzyme 3, NADP(+)-dependent,	AK133593	37	0	32	2	3	4.685	6.593	0.71	-2.426	2	0	2	0	0	4.153	6.593	0.63	-2.004
+Pecam1	platelet/endothelial cell adhesion molecule 1	NM_008816	0	0	0	0	0	3.678	5.352	0.69	-2.413	0	0	0	0	0	5.687	5.352	1.06	-0.062
+Gpc5	Mus musculus adult male hypothalamus cDNA, RIKEN full-length enriched library, clone:A230034F01 product:glypican 5, full insert sequence.	AK134807	51	0	51	0	0	5.322	7.333	0.73	-2.399	43	0	43	0	0	3.742	7.333	0.51	-2.79
+Hist1h2be	histone 1, H2be	NM_178194	0	0	0	0	0	1.213	2.113	0.57	-2.398	0	0	0	0	0	1.958	2.113	0.93	-0.614
+Adamts3	a disintegrin-like and metalloprotease	NM_001081401	5	0	4	1	0	6.198	8.432	0.74	-2.397	7	0	7	0	0	7.189	8.432	0.85	-0.957
+MMET-1	Mus musculus mRNA for truncated granzyme M, complete cds.	AB015727	0	0	0	0	0	0.234	0.672	0.35	-2.396	1	0	1	0	0	0.469	0.672	0.70	-1.099
+Grm7	Mus musculus 10 days neonate cerebellum cDNA, RIKEN full-length enriched library, clone:B930030A02 product:glutamate receptor, metabotropic 7, full insert sequence.	AK053447	340	4	332	1	3	12.142	15.64	0.78	-2.394	119	0	118	0	1	8.094	15.64	0.52	-3.156
+Dlk1	delta-like 1 homolog	U15980	0	0	0	0	0	0.354	1.014	0.35	-2.394	0	0	0	0	0	1.139	1.014	1.12	-0.121
+AK173072	Mus musculus adult male testis cDNA, RIKEN full-length enriched library, clone:4932433E03 product:Hypothetical protein GS164B05.1 in chromosome 7 (Fragment) homolog [Homo sapiens], full insert sequence.	AK173072	7	0	7	0	0	5.79	7.919	0.73	-2.387	13	0	12	1	0	4.489	7.919	0.57	-2.483
+4932418E24Rik	hypothetical protein LOC329366	NM_177841	0	0	0	0	0	2.066	3.207	0.64	-2.385	3	0	3	0	0	2.783	3.207	0.87	-0.797
+Ptprb	protein tyrosine phosphatase, receptor type, B	NM_029928	0	0	0	0	0	2.6	4.046	0.64	-2.382	0	0	0	0	0	3.693	4.046	0.91	-0.613
+AK045371	Mus musculus adult male corpora quadrigemina cDNA, RIKEN full-length enriched library, clone:B230107K20 product:unclassifiable, full insert sequence.	AK045371	0	0	0	0	0	2.006	3.125	0.64	-2.376	0	0	0	0	0	3.416	3.125	1.09	-0.024
+Phactr1	phosphatase and actin regulator 1 isoform 3	NM_001005748	424	3	421	0	2	94.094	127.652	0.74	-2.371	136	0	136	0	0	106.882	127.652	0.84	-0.845
+Gpr83	G protein-coupled receptor 83	NM_010287	0	0	0	0	0	8.747	11.489	0.76	-2.358	0	0	0	0	0	14.538	11.489	1.27	0.953
+4930402H24Rik	hypothetical protein LOC228602	NM_029432	46	0	37	1	8	14.662	18.619	0.79	-2.356	32	0	31	0	1	18.278	18.619	0.98	-0.158
+AK041042	Mus musculus adult male aorta and vein cDNA, RIKEN full-length enriched library, clone:A530067O22 product:unclassifiable, full insert sequence.	AK041042	1	0	0	1	0	11.303	14.666	0.77	-2.347	1	0	1	0	0	14.074	14.666	0.96	-0.332
+PBX3	Mus musculus transcription factor PBX3a (PBX3) mRNA, complete cds.	AK052017	37	0	36	0	1	7.501	9.814	0.76	-2.34	9	0	9	0	0	12.001	9.814	1.22	0.75
+Syt10	synaptotagmin X	NM_018803	0	0	0	0	0	1.707	2.71	0.63	-2.339	1	0	1	0	0	4.13	2.71	1.52	1.078
+Adamts4	a disintegrin-like and metalloprotease	AK076295	0	0	0	0	0	6.338	8.527	0.74	-2.332	1	0	0	0	1	9.644	8.527	1.13	0.344
+Cygb	cytoglobin	NM_030206	0	0	0	0	0	11.095	14.348	0.77	-2.332	0	0	0	0	0	15.298	14.348	1.07	0.175
+5730469M10Rik	hypothetical protein LOC70564	NM_027464	5	0	0	2	3	17.057	21.55	0.79	-2.332	0	0	0	0	0	21.723	21.55	1.01	0.017
+AK053779	Mus musculus adult male tongue cDNA, RIKEN full-length enriched library, clone:2310015A10 product:unclassifiable, full insert sequence.	AK053779	1	0	1	0	0	2.117	3.241	0.65	-2.331	0	0	0	0	0	3.212	3.241	0.99	-0.346
+RP23-198E14.4	Novel RNA polymerase Rpb1 C-terminal repeat domain containing protein.	BC130255	3	0	2	1	0	1.949	3.024	0.64	-2.325	1	0	1	0	0	4.245	3.024	1.40	0.847
+Lrrn2	leucine rich repeat protein 2, neuronal	NM_010732	20	0	20	0	0	18.665	23.781	0.78	-2.325	2	0	2	0	0	25.399	23.781	1.07	0.325
+Lrrtm4	leucine rich repeat transmembrane neuronal 4	NM_178731	418	0	413	2	3	8.968	11.739	0.76	-2.322	164	0	164	0	0	10.402	11.739	0.89	-0.697
+Snrk	SNF related kinase	BC094658	39	1	36	2	0	10.166	13.311	0.76	-2.318	20	0	20	0	0	12.96	13.311	0.97	-0.275
+Ryr3	Ryr3 protein.	BC116742	102	0	94	0	8	9.02	11.806	0.76	-2.318	34	0	33	0	1	7.069	11.806	0.60	-2.439
+Scd1	stearoyl-Coenzyme A desaturase 1	NM_009127	5	0	0	0	5	34.057	45.936	0.74	-2.317	0	0	0	0	0	36.405	45.936	0.79	-1.104
+1810041L15Rik	1810041L15Rik protein (Hypothetical protein).	BC120551	1	0	1	0	0	3.779	5.404	0.70	-2.317	4	0	3	0	1	5.283	5.404	0.98	-0.381
+Gpr116	G protein-coupled receptor 116	AK173020	0	0	0	0	0	5.525	7.513	0.74	-2.316	0	0	0	0	0	8.303	7.513	1.11	0.19
+Gpr139	G protein-coupled receptor 139	NM_001024138	0	0	0	0	0	0.851	1.717	0.50	-2.313	0	0	0	0	0	1.683	1.717	0.98	-0.467
+C1qtnf5	C1q and tumor necrosis factor related protein 5	NM_001040632	0	0	0	0	0	3.27	4.817	0.68	-2.306	0	0	0	0	0	4.774	4.817	0.99	-0.318
+Kif13a	kinesin family member 13A	AK220490	17	0	17	0	0	5.178	7.128	0.73	-2.302	29	0	29	0	0	7.659	7.128	1.07	0.057
+Zic1	Zic family member 1	BC060247	8	0	1	1	6	2.764	4.241	0.65	-2.299	4	2	0	0	2	5.412	4.241	1.28	0.616
+BC049805	Mus musculus, clone IMAGE:4481448, mRNA.	BC049805	0	0	0	0	0	5.804	7.851	0.74	-2.298	0	0	0	0	0	11.02	7.851	1.40	1.315
+Fat3	FAT tumor suppressor homolog 3 (Drosophila).	BC117744	57	5	50	0	2	10.1	13.187	0.77	-2.294	39	1	37	0	1	8.882	13.187	0.67	-1.948
+Foxj1	forkhead box J1	BC094569	0	0	0	0	0	3.765	5.372	0.70	-2.289	1	1	0	0	0	8.288	5.372	1.54	1.497
+Sbf2	Sbf2 protein (Fragment).	BC015069	14	1	13	0	0	9.565	12.429	0.77	-2.282	1	0	1	0	0	12.619	12.429	1.02	-0.07
+Tcf7	Mus musculus 16 days neonate thymus cDNA, RIKEN full-length enriched library, clone:A130029N06 product:transcription factor 7, T-cell specific, full insert sequence.	AK203658	0	0	0	0	0	2.247	3.438	0.65	-2.27	0	0	0	0	0	3.438	3.438	1.00	-0.315
+Slco1c1	solute carrier organic anion transporter family,	NM_021471	3	0	2	1	0	10.44	13.552	0.77	-2.266	8	0	8	0	0	12.598	13.552	0.93	-0.509
+AK012955	Mus musculus 10, 11 days embryo whole body cDNA, RIKEN full-length enriched library, clone:2810055G20 product:unclassifiable, full insert sequence.	AK012955	156	1	149	0	6	1.935	2.981	0.65	-2.263	40	0	39	0	1	4.531	2.981	1.52	1.158
+ten-m2	Mus musculus mRNA for Ten-m2, complete cds.	AK031198	760	0	760	0	0	8.092	10.525	0.77	-2.261	174	0	174	0	0	8.128	10.525	0.77	-1.322
+Aldh5a1	aldhehyde dehydrogenase family 5, subfamily A1	NM_172532	2	0	1	1	0	8.125	10.562	0.77	-2.255	2	0	2	0	0	8.761	10.562	0.83	-0.968
+AI464131	hypothetical protein LOC329828	NM_001085515	0	0	0	0	0	5.839	7.855	0.74	-2.253	0	0	0	0	0	6.714	7.855	0.85	-0.932
+Hist1h1e	histone 1, H1e	NM_015787	0	0	0	0	0	1.541	2.478	0.62	-2.25	0	0	0	0	0	2.437	2.478	0.98	-0.386
+AK157795	Mus musculus 9.5 days embryo parthenogenote cDNA, RIKEN full-length enriched library, clone:B130046B21 product:hypothetical protein, full insert sequence.	AK157795	0	0	0	0	0	2.283	3.492	0.65	-2.243	0	0	0	0	0	2.022	3.492	0.58	-2.011
+Abcc4	ATP-binding cassette, sub-family C (CFTR/MRP),	NM_001033336	0	0	0	0	0	1.557	2.491	0.63	-2.238	10	0	10	0	0	2.674	2.491	1.07	-0.116
+Lphn3	Latrophilin-3 precursor (Lectomedin-3).	BC058992	327	11	313	0	10	10.093	13.078	0.77	-2.238	84	2	82	0	0	9.506	13.078	0.73	-1.592
+4933407H18Rik	hypothetical protein LOC71101	NM_001081101	2	1	0	0	1	5.018	6.847	0.73	-2.237	2	0	2	0	0	9.277	6.847	1.35	1.091
+Wbscr27	Williams-Beuren syndrome critical region protein	NM_024479	0	0	0	0	0	2.039	3.098	0.66	-2.233	0	0	0	0	0	3.61	3.098	1.17	0.188
+Rreb1	ras responsive element binding protein 1 isoform	NM_001039188	5	4	1	0	0	7.171	9.394	0.76	-2.23	1	0	0	0	1	8.249	9.394	0.88	-0.785
+Cpt1b	carnitine palmitoyltransferase 1b, muscle	AK146851	0	0	0	0	0	0.209	0.559	0.37	-2.22	0	0	0	0	0	0.653	0.559	1.17	-0.136
+Ndrg1	N-myc downstream regulated gene 1	NM_008681	0	0	0	0	0	22.464	28.213	0.80	-2.218	1	0	1	0	0	31.035	28.213	1.10	0.462
+Ctnna2	catenin (cadherin associated protein), alpha 2	NM_145732	580	0	579	1	0	15.286	19.128	0.80	-2.214	181	0	181	0	0	7.151	19.128	0.37	-5.078
+AK006252	Mus musculus adult male testis cDNA, RIKEN full-length enriched library, clone:1700022O21 product:hypothetical KRAB box containing protein, full insert sequence.	AK006252	0	0	0	0	0	3.07	4.573	0.67	-2.213	0	0	0	0	0	4.681	4.573	1.02	-0.199
+AK154275	Mus musculus NOD-derived CD11c +ve dendritic cells cDNA, RIKEN full-length enriched library, clone:F630014F13 product:unclassifiable, full insert sequence.	AK154275	1	0	0	1	0	1.406	2.279	0.62	-2.21	1	0	0	1	0	2.508	2.279	1.10	-0.063
+Slit3	slit homolog 3	NM_011412	279	0	278	1	0	6.003	8.013	0.75	-2.209	74	0	74	0	0	3.85	8.013	0.48	-3.081
+Vegfb	vascular endothelial growth factor B	NM_011697	0	0	0	0	0	9.416	12.115	0.78	-2.203	0	0	0	0	0	13.683	12.115	1.13	0.429
+Spint2	serine protease inhibitor, Kunitz type 2 isoform	NM_011464	0	0	0	0	0	3.661	5.17	0.71	-2.201	0	0	0	0	0	5.361	5.17	1.04	-0.157
+BC057022	hypothetical protein LOC433940	NM_001004180	0	0	0	0	0	3.713	5.193	0.72	-2.198	7	0	7	0	0	6.018	5.193	1.16	0.275
+Nlgn1	neuroligin 1	BC098461	667	1	660	2	4	9.161	11.848	0.77	-2.197	158	0	157	0	1	6.051	11.848	0.51	-3.176
+Agbl5	carboxypeptidase 5, cytosolic isoform 5	NM_174849	2	2	0	0	0	3.699	5.168	0.72	-2.195	0	0	0	0	0	5.217	5.168	1.01	-0.256
+Dcc	Mus musculus 12 days embryo spinal cord cDNA, RIKEN full-length enriched library, clone:C530046D04 product:deleted in colorectal carcinoma, full insert sequence.	AK049746	320	0	318	1	1	7.5	9.687	0.77	-2.195	56	1	55	0	0	4.686	9.687	0.48	-3.287
+Rasgrp2	RAS, guanyl releasing protein 2	AK160563	0	0	0	0	0	25.428	32.629	0.78	-2.193	2	0	2	0	0	27.611	32.629	0.85	-0.795
+AK083195	Mus musculus 16 days neonate cerebellum cDNA, RIKEN full-length enriched library, clone:9630016B09 product:unclassifiable, full insert sequence.	AK083195	44	0	35	0	9	4.037	5.614	0.72	-2.188	7	0	5	1	1	3.172	5.614	0.57	-2.304
+Flad1	FAD-synthetase	AK044501	2	0	1	0	1	8.566	11.001	0.78	-2.185	0	0	0	0	0	9.838	11.001	0.89	-0.651
+Pogk	pogo transposable element with KRAB domain	NM_175170	0	0	0	0	0	18.258	22.764	0.80	-2.184	1	0	1	0	0	17.942	22.764	0.79	-1.212
+Pygo1	pygopus 1	NM_028116	0	0	0	0	0	2.814	4.227	0.67	-2.184	0	0	0	0	0	5.071	4.227	1.20	0.363
+AK039159	Mus musculus adult male hypothalamus cDNA, RIKEN full-length enriched library, clone:A230103J11 product:unclassifiable, full insert sequence.	AK039159	0	0	0	0	0	2.091	3.129	0.67	-2.175	0	0	0	0	0	3.022	3.129	0.97	-0.449
+E330018D03Rik	hypothetical protein LOC320319	NM_177133	5	0	0	0	5	8.008	10.336	0.77	-2.172	0	0	0	0	0	9.87	10.336	0.95	-0.375
+Myst4	MYST histone acetyltransferase monocytic	NM_017479	73	1	65	0	7	13.46	16.877	0.80	-2.169	45	0	44	0	1	14.794	16.877	0.88	-0.78
+Adra2c	adrenergic receptor, alpha 2c	NM_007418	0	0	0	0	0	7.368	9.517	0.77	-2.165	0	0	0	0	0	9.098	9.517	0.96	-0.383
+Carf	calcium response factor	NM_139150	3	0	2	0	1	2.834	4.242	0.67	-2.161	1	0	1	0	0	3.688	4.242	0.87	-0.786
+Zfp710	zinc finger protein 710	AK154953	1	0	1	0	0	5.784	7.708	0.75	-2.161	3	0	3	0	0	8.469	7.708	1.10	0.164
+Slc39a2	Mus musculus B6-derived CD11 +ve dendritic cells cDNA, RIKEN full-length enriched library, clone:F730005G13 product:similar to ETI-1 PROTEIN (ZINC TRANSPORTER HZIP2) [Homo sapiens], full insert sequence.	AK135117	0	0	0	0	0	3.928	5.479	0.72	-2.159	0	0	0	0	0	4.703	5.479	0.86	-0.87
+Mccc2	Adult male testis cDNA, RIKEN full-length enriched library, clone:4930552N12 product:hypothetical protein, full insert sequence.	AK019760	4	0	4	0	0	4.459	6.114	0.73	-2.153	9	0	9	0	0	6.491	6.114	1.06	-0.033
+AJ517767	Mus musculus domesticus 129S1 imprinted Meg9 mRNA, partial sequence.	AJ517767	19	0	12	6	1	9.352	11.982	0.78	-2.151	7	0	3	4	0	10.878	11.982	0.91	-0.588
+Pcdhb6	protocadherin beta 6	NM_053131	0	0	0	0	0	0.779	1.561	0.50	-2.15	0	0	0	0	0	0.927	1.561	0.59	-1.595
+Bcs1l	BCS1-like	NM_025784	0	0	0	0	0	4.154	5.72	0.73	-2.144	0	0	0	0	0	5.943	5.72	1.04	-0.131
+AK138915	Mus musculus adult male aorta and vein cDNA, RIKEN full-length enriched library, clone:A530002D02 product:hypothetical Protein kinase/Serine/threonine protein kinase/Tyrosine protein kinase/Protein kinase domain profile/Proline-rich region profile/Protein kinase-like/Myb DNA-binding domain/Serine/threonine protein kinase, active site containing protein, full insert sequence.	AK138915	0	0	0	0	0	0.332	0.864	0.38	-2.143	0	0	0	0	0	0.767	0.864	0.89	-0.624
+AK140147	Mus musculus adult male corpora quadrigemina cDNA, RIKEN full-length enriched library, clone:B230314M03 product:hypothetical protein, full insert sequence.	AK140147	0	0	0	0	0	1.558	2.449	0.64	-2.135	0	0	0	0	0	2.531	2.449	1.03	-0.237
+Nwd1	NACHT and WD repeat domain containing 1	NM_176940	3	0	0	2	1	12.711	15.963	0.80	-2.132	7	0	5	1	1	11.902	15.963	0.75	-1.592
+Nrg3	neuregulin 3	AK138643	754	0	746	1	7	4.3	5.878	0.73	-2.13	225	0	225	0	0	2.129	5.878	0.36	-3.848
+Cd4	CD4 antigen	AK040115	0	0	0	0	0	11.254	14.236	0.79	-2.127	0	0	0	0	0	14.364	14.236	1.01	-0.087
+BC048612	Mus musculus adult male testis cDNA, RIKEN full-length enriched library, clone:4930570G19 product:unclassifiable, full insert sequence.	BC048612	12	0	7	0	5	4.973	6.675	0.75	-2.126	4	0	4	0	0	5.637	6.675	0.84	-0.932
+AK038386	Mus musculus adult male hypothalamus cDNA, RIKEN full-length enriched library, clone:A230001M10 product:unclassifiable, full insert sequence.	AK038386	0	0	0	0	0	0.457	1.001	0.46	-2.124	1	0	1	0	0	1.09	1.001	1.09	-0.193
+Plag1	pleiomorphic adenoma gene 1	NM_019969	0	0	0	0	0	1.012	1.771	0.57	-2.118	0	0	0	0	0	1.583	1.771	0.89	-0.727
+Htr1b	5-hydroxytryptamine (serotonin) receptor 1B	NM_010482	0	0	0	0	0	4.794	6.48	0.74	-2.115	0	0	0	0	0	5.765	6.48	0.89	-0.731
+Tgfbr3	transforming growth factor, beta receptor III	AK166082	1	0	1	0	0	2.934	4.329	0.68	-2.113	16	0	15	0	1	4.654	4.329	1.08	-0.026
+4631426J05Rik	N-acetylgalactosamine 4-sulfate	NM_029935	16	0	16	0	0	12.606	15.746	0.80	-2.107	7	0	6	0	1	15.952	15.746	1.01	-0.057
+4930412F15Rik	hypothetical protein LOC242408	AK076680	0	0	0	0	0	0.338	0.867	0.39	-2.105	0	0	0	0	0	0.615	0.867	0.71	-1.091
+Smpd3	sphingomyelin phosphodiesterase 3, neutral	BC046980	7	0	6	0	1	29.286	38.56	0.76	-2.104	3	0	3	0	0	39.834	38.56	1.03	0.139
+Npas4	neuronal PAS domain protein 4	NM_153553	0	0	0	0	0	6.29	8.251	0.76	-2.101	0	0	0	0	0	6.08	8.251	0.74	-1.514
+Ccdc117	coiled-coil domain containing 117	NM_134033	0	0	0	0	0	4.057	5.573	0.73	-2.096	0	0	0	0	0	5.153	5.573	0.92	-0.586
+TrkC	Mus musculus 0 day neonate kidney cDNA, RIKEN full-length enriched library, clone:D630004O17 product:neurotrophic tyrosine kinase, receptor, type 3, full insert sequence.	AK164887	184	8	174	0	7	6.974	9.057	0.77	-2.096	82	1	81	0	1	6.812	9.057	0.75	-1.52
+Zfp521	zinc finger protein 521 isoform 1	NM_145492	118	0	118	0	0	2.834	4.197	0.68	-2.095	43	0	43	0	0	5.22	4.197	1.24	0.501
+Tpst1	protein-tyrosine sulfotransferase 1	NM_013837	2	0	2	0	0	10.44	13.318	0.78	-2.094	4	0	4	0	0	13.57	13.318	1.02	-0.037
+Lbp	Mus musculus 6 days neonate spleen cDNA, RIKEN full-length enriched library, clone:F420002K21 product:lipopolysaccharide binding protein, full insert sequence.	AK158105	0	0	0	0	0	0.553	1.176	0.47	-2.089	0	0	0	0	0	1.234	1.176	1.05	-0.288
+Myl9	Myosin regulatory light chain 2, smooth muscle isoform (Myosin RLC) (Myosin regulatory light chain 9).	BC055439	0	0	0	0	0	2.861	4.23	0.68	-2.089	0	0	0	0	0	5.1	4.23	1.21	0.383
+2600009E05Rik	hypothetical protein LOC77006	NM_029832	5	0	5	0	0	13.66	16.974	0.80	-2.088	1	0	1	0	0	17.885	16.974	1.05	0.172
+Akp2	alkaline phosphatase 2, liver	NM_007431	0	0	0	0	0	0.858	1.644	0.52	-2.087	0	0	0	0	0	1.223	1.644	0.74	-1.167
+Tgfa	transforming growth factor alpha	NM_031199	0	0	0	0	0	20.613	25.422	0.81	-2.083	1	0	1	0	0	31.557	25.422	1.24	1.03
+Trip6	thyroid receptor-interacting protein 6	NM_011639	0	0	0	0	0	0.666	1.353	0.49	-2.079	0	0	0	0	0	1.693	1.353	1.25	0.148
+Indo	indoleamine-pyrrole 2,3 dioxygenase	NM_008324	0	0	0	0	0	5.159	6.901	0.75	-2.079	0	0	0	0	0	7.546	6.901	1.09	0.12
+Gabrb1	gamma-aminobutyric acid (GABA-A) receptor,	NM_008069	102	0	98	3	1	4.648	6.261	0.74	-2.074	35	0	35	0	0	8.633	6.261	1.38	1.179
+AK048739	Mus musculus adult retina cDNA, RIKEN full-length enriched library, clone:A930011G23 product:hypothetical protein, full insert sequence.	AK048739	43	0	40	1	2	0.83	1.601	0.52	-2.073	45	0	45	0	0	1.441	1.601	0.90	-0.709
+Erf	Ets2 repressor factor	NM_010155	1	0	1	0	0	21.443	26.446	0.81	-2.073	0	0	0	0	0	25.034	26.446	0.95	-0.267
+Adck2	aarF domain containing kinase 2	NM_178873	2	0	2	0	0	6.178	8.089	0.76	-2.068	0	0	0	0	0	7.457	8.089	0.92	-0.623
+Epas1	endothelial PAS domain protein 1	NM_010137	1	0	1	0	0	18.462	22.845	0.81	-2.068	2	0	2	0	0	25.408	22.845	1.11	0.528
+Gpr37	G protein-coupled receptor 37	NM_010338	0	0	0	0	0	12.858	15.971	0.81	-2.055	0	0	0	0	0	17.07	15.971	1.07	0.23
+Rad9b	3 days neonate thymus cDNA, RIKEN full-length enriched library, clone:A630082N15 product:hypothetical protein, full insert sequence.	AK042331	1	0	0	0	1	0.651	1.322	0.49	-2.054	0	0	0	0	0	1.184	1.322	0.90	-0.655
+Cdk10	Mus musculus 8 days embryo whole body cDNA, RIKEN full-length enriched library, clone:5730522O06 product:cyclin-dependent kinase (CDC2-like) 10, full insert sequence.	BC128325	12	1	11	0	0	4.738	6.364	0.74	-2.051	0	0	0	0	0	5.509	6.364	0.87	-0.831
+1110029E03Rik	hypothetical protein LOC242406	AK170117	3	0	1	1	1	15.764	19.401	0.81	-2.05	0	0	0	0	0	19.305	19.401	1.00	-0.058
+Gpr6	G protein-coupled receptor 6	AK139367	0	0	0	0	0	12.346	15.336	0.81	-2.048	0	0	0	0	0	16.731	15.336	1.09	0.319
+Kif27	kinesin family member 27	NM_175214	0	0	0	0	0	1.596	2.459	0.65	-2.045	0	0	0	0	0	2.307	2.459	0.94	-0.528
+Drd1a	dopamine receptor D1A	NM_010076	0	0	0	0	0	38.806	50.33	0.77	-2.043	1	0	0	0	1	50.043	50.33	0.99	-0.034
+AK140390	Mus musculus 4 days neonate thymus cDNA, RIKEN full-length enriched library, clone:B630019P21 product:hypothetical Zn-finger-like, PHD finger/Proline-rich region profile/Cysteine-rich region profile/FYVE/PHD zinc finger containing protein, full insert sequence.	AK140390	8	2	4	2	0	12.982	16.088	0.81	-2.043	4	0	4	0	0	14.146	16.088	0.88	-0.747
+Htr2c	5-hydroxytryptamine (serotonin) receptor 2C	BC098327	25	1	19	0	5	14.035	17.313	0.81	-2.04	4	0	4	0	0	17.72	17.313	1.02	0.029
+Gng7	guanine nucleotide binding protein (G protein),	NM_001038655	18	0	17	0	1	149.227	193.433	0.77	-2.039	18	0	18	0	0	195.63	193.433	1.01	0.046
+AK133324	Mus musculus adult male testis cDNA, RIKEN full-length enriched library, clone:4932433E03 product:Hypothetical protein GS164B05.1 in chromosome 7 (Fragment) homolog [Homo sapiens], full insert sequence.	AK133324	1	0	0	0	1	6.831	8.825	0.77	-2.036	0	0	0	0	0	6.021	8.825	0.68	-1.965
+Slc6a11	gamma-aminobutyric acid (GABA-A) transporter 4	NM_172890	5	0	0	0	5	25.243	31.82	0.79	-2.035	10	0	8	2	0	26.852	31.82	0.84	-0.821
+6330514A18Rik	hypothetical protein LOC216166	BC099679	2	0	0	2	0	3.875	5.322	0.73	-2.033	6	0	6	0	0	4.47	5.322	0.84	-0.941
+Galnt13	UDP-N-acetyl-alpha-D-galactosamine:polypeptide	AK030726	156	0	150	3	3	10.325	13.089	0.79	-2.032	42	0	42	0	0	8.593	13.089	0.66	-2.032
+Itih3	inter-alpha trypsin inhibitor, heavy chain 3	NM_008407	0	0	0	0	0	3.209	4.614	0.70	-2.032	0	0	0	0	0	4.078	4.614	0.88	-0.72
+Llgl1	lethal giant larvae homolog	NM_008502	1	0	1	0	0	8.434	10.633	0.79	-2.031	1	0	0	0	1	13.33	10.633	1.25	0.936
+Cgnl1	Adult male testis cDNA, RIKEN full-length enriched library, clone:1700047G11 product:hypothetical Myosin tail containing protein, full insert sequence (Cgnl1 protein).	AK018850	1	0	1	0	0	3.589	5.006	0.72	-2.031	2	0	2	0	0	5.618	5.006	1.12	0.145
+Clcn1	Mus musculus adult male bone cDNA, RIKEN full-length enriched library, clone:9830168O13 product:CHLORIDE CHANNEL PROTEIN, SKELETAL MUSCLE (CHLORIDE CHANNEL PROTEIN 1) (CLC-1), full insert sequence.	AY046404	2	0	2	0	0	0.227	0.564	0.40	-2.029	2	0	2	0	0	0.732	0.564	1.30	0.062
+Nr2f6	Mus musculus ES cells cDNA, RIKEN full-length enriched library, clone:2410017K09 product:nuclear receptor subfamily 2, group F, member 6, full insert sequence.	AK216379	0	0	0	0	0	2.816	4.128	0.68	-2.028	0	0	0	0	0	3.973	4.128	0.96	-0.428
+Calml4	17 days embryo kidney cDNA, RIKEN full-length enriched library, clone:I920038P21 product:calmodulin-like 4, full insert sequence.	AK146656	0	0	0	0	0	0.242	0.601	0.40	-2.026	0	0	0	0	0	0.391	0.601	0.65	-1.23
+NR_002167	Mus musculus 10 days neonate olfactory brain cDNA, RIKEN full-length enriched library, clone:E530001F21 product:hypothetical Homeobox domain containing protein, full insert sequence.	NR_002167	0	0	0	0	0	0.706	1.409	0.50	-2.025	0	0	0	0	0	1.182	1.409	0.84	-0.81
+mKIAA0326	Mus musculus 13 days embryo forelimb cDNA, RIKEN full-length enriched library, clone:5930419A17 product:KIAA0326 PROTEIN (FRAGMENT) homolog [Homo sapiens], full insert sequence.	AK079665	0	0	0	0	0	5.108	6.777	0.75	-2.016	0	0	0	0	0	6.452	6.777	0.95	-0.471
+H1fx	H1 histone family, member X	NM_198622	0	0	0	0	0	6.719	8.683	0.77	-2.015	0	0	0	0	0	9.136	8.683	1.05	0.017
+Cxcl12	stromal cell derived factor 1 isoform beta	NM_013655	0	0	0	0	0	9.011	11.364	0.79	-2.014	0	0	0	0	0	10.102	11.364	0.89	-0.687
+BC068157	hypothetical protein LOC73072	NM_207203	1	0	0	0	1	4.77	6.364	0.75	-2.014	0	0	0	0	0	5.04	6.364	0.79	-1.15
+2700045P11Rik	11 days embryo whole body cDNA, RIKEN full-length enriched library, clone:2700045P11 product:hypothetical protein, full insert sequence.	AK012380	91	0	90	1	0	15.551	19.058	0.82	-2.012	57	0	57	0	0	18.112	19.058	0.95	-0.312
+Nab2	Ngfi-A binding protein 2	NM_008668	0	0	0	0	0	9.959	12.618	0.79	-2.011	0	0	0	0	0	9.769	12.618	0.77	-1.307
+Hemk1	Mus musculus 2 days pregnant adult female ovary cDNA, RIKEN full-length enriched library, clone:E330026G11 product:weakly similar to HEMK PROTEIN HOMOLOG (EC 2.1.1.-) (M.HSAHEMKP) [Homo sapiens], full insert sequence.	AK054445	3	0	1	1	1	3.38	4.759	0.71	-2.01	0	0	0	0	0	3.999	4.759	0.84	-0.897
+Acvrl1	activin A receptor, type II-like 1	AK160915	0	0	0	0	0	5.875	7.672	0.77	-2.007	0	0	0	0	0	7.477	7.672	0.97	-0.377
+Tmem86b	hypothetical protein LOC68255	NM_023440	1	0	0	1	0	2.15	3.137	0.69	-2.007	0	0	0	0	0	2.108	3.137	0.67	-1.485
+Pygm	muscle glycogen phosphorylase	NM_011224	0	0	0	0	0	4.29	5.781	0.74	-2.006	0	0	0	0	0	3.73	5.781	0.65	-1.89
+Dennd1a	Mus musculus in vitro fertilized eggs cDNA, RIKEN full-length enriched library, clone:7420473K21 product:hypothetical dDENN domain/DENN (AEX-3) domain containing protein, full insert sequence.	AK220407	70	0	70	0	0	9.873	12.493	0.79	-2.004	31	0	31	0	0	9.337	12.493	0.75	-1.451
+Ajap1	adherens junction associated protein 1	NM_001099299	14	0	14	0	0	9.115	11.483	0.79	-2.002	17	0	17	0	0	11.544	11.483	1.01	-0.108
+Zswim6	Zinc finger SWIM domain-containing protein 6 (Fragment).	AK037945	106	1	105	0	0	11.295	14.095	0.80	-2	19	0	17	0	2	13.377	14.095	0.95	-0.4
+Atp2b3	Atp2b3 protein.	BC118976	34	0	25	7	2	16.163	19.76	0.82	-1.996	5	0	4	1	0	13.083	19.76	0.66	-2.116
+Vwf	Mus musculus von Willebrand factor mRNA, complete cds.	AK044921	0	0	0	0	0	1.625	2.481	0.65	-1.994	0	0	0	0	0	2.859	2.481	1.15	0.12
+Lrrc4c	leucine rich repeat containing 4C	NM_178725	348	6	341	0	2	24.878	31.223	0.80	-1.994	141	0	141	0	0	24.011	31.223	0.77	-1.27
+Rgs9	regulator of G-protein signaling 9	AF011358	42	0	29	0	13	55.938	72.023	0.78	-1.99	8	0	8	0	0	64.615	72.023	0.90	-0.519
+Cd59a	CD59a antigen	NM_007652	1	0	0	1	0	1.644	2.507	0.66	-1.99	0	0	0	0	0	3.968	2.507	1.58	1.196
+Bai3	brain-specific angiogenesis inhibitor 3	BC079670	545	3	540	0	2	15.887	19.408	0.82	-1.987	154	0	154	0	0	13.082	19.408	0.67	-2.047
+Kcng3	potassium voltage-gated channel, subfamily G,	NM_153512	0	0	0	0	0	2.214	3.242	0.68	-1.985	2	0	2	0	0	3.046	3.242	0.94	-0.538
+6430571L13Rik	hypothetical protein LOC235599	NM_175486	2	0	1	0	1	1.183	1.945	0.61	-1.985	0	0	0	0	0	1.618	1.945	0.83	-0.883
+Phf20l1	PHD finger protein 20-like 1	BC052212	48	14	33	0	11	9.541	11.982	0.80	-1.982	7	1	6	0	1	11.543	11.982	0.96	-0.294
+Zcchc12	zinc finger, CCHC domain containing 12	NM_028325	3	1	1	0	1	19.18	23.564	0.81	-1.982	0	0	0	0	0	26.783	23.564	1.14	0.637
+Lingo2	leucine rich repeat and Ig domain containing 2	AK141568	371	1	370	0	0	2.462	3.586	0.69	-1.982	124	0	123	0	1	1.865	3.586	0.52	-2.317
+AK032180	Mus musculus adult male olfactory brain cDNA, RIKEN full-length enriched library, clone:6430407N19 product:unclassifiable, full insert sequence.	AK032180	18	0	15	3	0	7.243	9.218	0.79	-1.977	7	0	7	0	0	7.618	9.218	0.83	-1.107
+Drd2	dopamine receptor 2	NM_010077	0	0	0	0	0	27.203	33.926	0.80	-1.976	5	0	5	0	0	34.616	33.926	1.02	0.084
+Grm1	glutamate receptor, metabotropic 1	NM_016976	111	0	109	2	0	8.592	10.794	0.80	-1.975	62	0	62	0	0	8.356	10.794	0.77	-1.261
+Fbxo10	Mus musculus 13 days embryo lung cDNA, RIKEN full-length enriched library, clone:D430034C13 product:F-box only protein 10, full insert sequence.	AK150292	1	0	1	0	0	5.78	7.51	0.77	-1.97	4	0	4	0	0	7.259	7.51	0.97	-0.416
+Kcnq3	potassium voltage-gated channel, subfamily Q,	NM_152923	170	0	170	0	0	11.546	14.378	0.80	-1.968	66	0	66	0	0	6.533	14.378	0.45	-3.657
+2700038N03Rik	Ufm1-specific protease 1	NM_027356	0	0	0	0	0	1.911	2.805	0.68	-1.967	0	0	0	0	0	2.458	2.805	0.88	-0.707
+Coasy	Coenzyme A synthase	BC064753	1	0	0	0	1	3.392	4.746	0.71	-1.967	0	0	0	0	0	4.937	4.746	1.04	-0.139
+Lass1	longevity assurance homolog 1	NM_138647	6	0	4	1	1	19.517	23.879	0.82	-1.965	2	0	2	0	0	21.847	23.879	0.91	-0.459
+Pipox	pipecolic acid oxidase	NM_008952	0	0	0	0	0	1.072	1.802	0.59	-1.963	0	0	0	0	0	2.794	1.802	1.55	0.873
+H2-DMa	histocompatibility 2, class II, locus DMa	NM_010386	1	1	0	0	0	2.679	3.888	0.69	-1.962	0	0	0	0	0	4.313	3.888	1.11	0.075
+Dmpk	dystrophia myotonica-protein kinase	BC075715	0	0	0	0	0	1.778	2.644	0.67	-1.962	0	0	0	0	0	2.575	2.644	0.97	-0.396

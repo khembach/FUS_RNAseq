@@ -1,0 +1,1835 @@
+---
+title: "DE analysis polyA RNA-seq"
+author: "Katharina Hembach"
+date: "9/10/2019"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+Here we analyse the result of the differential gene expression analysis of the polyA RNA-seq data from August 2019. DE analysis was performed with edgeR and the ARMOR workflow. 
+
+We have samples from WT and FUS KI mice of 1 and 6 months. The total cortex, synaptoneurosome preparations and nuclear fractions were polyA sequences with replicates.
+
+We are mostly intersted in understanding the effect of FUS KI on gene expression. It is known that there is no observable effect in young mice, but we expect to so differences in older mice. Cortex samples have been analyses before, so we are mostly interested in synaptic gene expression changes.
+
+# Load packages and DGE results
+
+```{r packages}
+suppressPackageStartupMessages({
+  library(here)
+  library(dplyr)
+  library(SingleCellExperiment)
+  library(ggplot2)
+  library(RColorBrewer)
+  library(stringr)
+  library(ggforce)
+  library(ComplexHeatmap)
+  library(ggrepel)
+  library(tibble)
+  library(biomaRt)
+  library(rtracklayer)
+  library(sva)
+  library(umap)
+  library(limma)
+  library(pathview)
+  library(tidyr)
+  library(scales)
+  library(cowplot)
+  library(ggpubr)
+  library(fs)
+  library(circlize)
+  library(org.Mm.eg.db)
+  library(annotate)
+})
+here <- here::here()
+```
+
+
+```{r file-names}
+se <- here("output/outputR/edgeR_dge.rds" )
+## Manually filtered list of target genes (genes on the wrong strand are removed)
+fus_targets <- "/home/Shared/data/seq/sonu_CLIPseq/clip_March2018/analysis/deduplicated/MA_plot_selection/top_peaks_loess_adjM_pValue_1e-05_gene_anno_manually_filtered.txt"
+
+gtf_file <- "/home/Shared/data/annotation/Mouse/Ensembl_GRCm38.90/gtf/Mus_musculus.GRCm38.90.gtf"
+```
+
+We load the `SummarizedExperiment` objects prepared using `tximeta`, containing
+gene- and transcript-level counts and feature lengths. In this report, we will
+use the gene-level quantifications.
+
+```{r edgeR-print-se}
+se <- readRDS(se)
+## List of SummarizedExperiment objects (gene/transcript level)
+se
+
+## Get gene-level SummarizedExperiment object
+sg <- se$sg
+metadata <- colData(sg)
+sg
+```
+
+
+# Metadata
+
+```{r}
+metadata
+table(metadata$group)
+table(metadata$fraction)
+table(metadata$genotype)
+table(metadata$age)
+```
+
+
+## Adding additional metadata
+
+We have additional data about the gender, batch of the sample preparation, concentration ng/ul and the RIN value. We will a metadta file with this additional info. We wil use it for the MDS and PCA plots.
+
+```{r}
+ext_metadata <- read.table(here("extended_metadata.txt"), header = TRUE, 
+                           stringsAsFactors = FALSE)
+```
+
+# Reads per sample
+
+```{r edgeR-plot-totalcount}
+ggplot(data.frame(totCount = colSums(assay(sg, "counts")), 
+                  sample = colnames(assay(sg, "counts")), 
+                  group = metadata$group,
+                  stringsAsFactors = FALSE), 
+       aes(x = sample, y = totCount, fill = group)) + geom_bar(stat = "identity") + 
+    theme_bw() + xlab("") + ylab("Total read count") + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), legend.position = "bottom") + 
+    scale_fill_manual(values = c(brewer.pal(8,name = "Dark2"), "black"))
+```
+
+# Genes per sample and group
+
+How many genes are expressed above a certain threshold (1cpm) in all replicates per group?
+
+```{r}
+##log2 counts per million
+logcpms <- assay(sg, "logcpm")
+
+## How many genes have >= 1 cpm?
+sample_cnts <- apply(logcpms, 2, function(x) sum(x >= 0))
+sample_cnts <- data.frame(gene_counts = sample_cnts)
+sample_cnts <- sample_cnts %>% as.data.frame() %>% 
+  rownames_to_column(var = "names") %>%
+  dplyr::full_join(ext_metadata, by = "names")
+
+ggplot(sample_cnts, aes(x = group, y = gene_counts, col = group)) +
+  geom_sina(alpha = 0.6, size = 2.5) +
+  theme_bw(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_color_manual(values = c(brewer.pal(8,name = "Dark2"), "black")) + 
+  ggtitle("Number of genes with >= 1CPM")  +
+  ylab("Number of genes") +
+  theme(legend.position = "none")
+ggsave(here("Rmd/de_analysis_figures/number_genes_1cpm.pdf"), width = 6, height = 5)
+
+## Number of genes with >= 1 CPM in all replicates per group
+group_genes <- lapply(unique(metadata$group), function(x) 
+  logcpms %>% as.data.frame() %>% 
+    dplyr::select(metadata[metadata$group == x, "names"]) %>%
+    rownames_to_column("gene_id") %>%
+    dplyr::filter(., rowSums(dplyr::select(., -gene_id) >= 0) ==(ncol(.)-1))
+    )
+names(group_genes) <- unique(metadata$group)
+lapply(group_genes, nrow)
+
+plot_gene_cnt <- function(group_genes, title = ""){
+  group_cnts <- data.frame(gene_count = sapply(group_genes, nrow)) %>%
+  rownames_to_column(var = "group") %>% mutate(group = as.factor(group)) 
+
+  ggplot(group_cnts, aes(x = group, y = gene_count, col = group)) + 
+    geom_point(size = 2.5) +
+    theme_bw(base_size = 14) +
+    theme(axis.text.x = element_text(angle = 90)) +
+    scale_color_manual(values = c(brewer.pal(8,name = "Dark2"), "black")) + 
+    ggtitle(title)  +
+    ylab("Number of genes") +
+    theme(legend.position = "none")
+}
+
+plot_gene_cnt(group_genes, title = "genes with >= 1CPM in all replicates per group")
+ggsave(here("Rmd/de_analysis_figures/number_genes_1cpm_all_replicates.pdf"), width = 6, height = 5)
+
+## >= 1 CPM in at least one replicate
+group_genes_1 <- lapply(unique(metadata$group), function(x) 
+  logcpms %>% as.data.frame() %>% 
+    dplyr::select(metadata[metadata$group == x, "names"]) %>%
+    rownames_to_column("gene_id") %>%
+    dplyr::filter(., rowSums(dplyr::select(., -gene_id) >= 0) >= 1)
+    )
+names(group_genes_1) <- unique(metadata$group)
+lapply(group_genes_1, nrow)
+
+plot_gene_cnt(group_genes_1, title = "genes with >= 1CPM in >= 1 replicate")
+ggsave(here("Rmd/de_analysis_figures/number_genes_1cpm_1replicate.pdf"), width = 6, height = 5)
+```
+
+How many genes were used in the DE analysis? Is it the same for all contrasts?
+```{r}
+rowData(sg)[["edgeR:groupSNS.KI.6_mo-groupSNS.WT.6_mo"]] %>%
+  as.data.frame() %>% dplyr::filter(!is.na(logFC)) %>% nrow
+rowData(sg)[["edgeR:groupH.KI.1_mo-groupH.WT.1_mo"]] %>%
+  as.data.frame() %>% dplyr::filter(!is.na(logFC)) %>% nrow
+```
+Yes, it is the same number of all contrasts.
+
+
+
+# MDS plot
+
+A multidimensional scaling plot (MDS) is a low dimensional representation of the data.
+
+```{r MDS-plots}
+
+mds <- limma::plotMDS(logcpms, top = 500, labels = NULL, pch = NULL,
+                      cex = 1, dim.plot = c(1, 2), ndim = min(7, ncol(logcpms) - 1),
+                      gene.selection = "common",
+                      xlab = NULL, ylab = NULL, plot = FALSE)$cmdscale.out
+colnames(mds) <- paste0("MDS", seq_len(ncol(mds)))
+mds <- as.data.frame(mds) %>% tibble::rownames_to_column(var = "names") %>%
+    dplyr::full_join(ext_metadata, by = "names")
+
+ggplotMDS <- function(dat, x = "MDS1", y = "MDS2", color = "group", shape = "genotype"){
+  ggplot(dat, aes_string(x = x, y = y, color = color, shape = shape)) +
+    geom_point(size = 3) +
+    theme_bw(base_size = 16) +
+    scale_color_manual(values = c(brewer.pal(8,name = "Dark2"), "black")) + 
+    theme(aspect.ratio = 1)
+}
+
+ggplotMDS(mds)
+ggsave(here("Rmd/de_analysis_figures/MDS_dim1_2_group_genotype.png"),
+       width =8.5, height = 6)
+ggplotMDS(mds, "MDS1", "MDS3", color = "group", shape = "genotype")
+ggplotMDS(mds, "MDS1", "MDS4", color = "group", shape = "genotype")
+ggsave(here("Rmd/de_analysis_figures/MDS_dim1_4_group_genotype.png"),
+       width =8.5, height = 6)
+ggplotMDS(mds, "MDS2", "MDS3", color = "group", shape = "genotype")
+ggplotMDS(mds, color = "run_ID")
+
+
+## We need to transform the continuous concentration variable into a discrete one
+mds$conc <- cut(ext_metadata$concentration_ng_per_ul, breaks = 8)
+ggplotMDS(mds, color = "conc")
+ggsave(here("Rmd/de_analysis_figures/MDS_dim1_2_group_concentration.png"),
+       width =8.5, height = 6)
+mds$RIN <- cut(ext_metadata$RIN_value, breaks = 8)
+ggplotMDS(mds, color = "RIN")
+ggsave(here("Rmd/de_analysis_figures/MDS_dim1_2_group_RIN.png"),
+       width =8.5, height = 6)
+ggplotMDS(mds, color = "gender")
+ggsave(here("Rmd/de_analysis_figures/MDS_dim1_2_group_gender.png"),
+       width =8.5, height = 6)
+ggplotMDS(mds, "MDS1", "MDS3", color = "gender")
+ggsave(here("Rmd/de_analysis_figures/MDS_dim1_3_group_gender.png"),
+       width =8.5, height = 6)
+ggplotMDS(mds, "MDS1", "MDS4", color = "gender")
+ggsave(here("Rmd/de_analysis_figures/MDS_dim1_4_group_gender.png"),
+       width =8.5, height = 6)
+ggplotMDS(mds, color = "batch")
+ggsave(here("Rmd/de_analysis_figures/MDS_dim1_2_group_batch.png"),
+       width =8.5, height = 6)
+ggplotMDS(mds, "MDS1", "MDS3", color = "batch")
+ggsave(here("Rmd/de_analysis_figures/MDS_dim1_3_group_batch.png"),
+       width =8.5, height = 6)
+ggplotMDS(mds, "MDS1", "MDS4", color = "batch")
+ggsave(here("Rmd/de_analysis_figures/MDS_dim1_4_group_batch.png"),
+       width =8.5, height = 6)
+
+
+## What happens if we use more than just the top 500 genes for the MDS plot?
+mds <- limma::plotMDS(logcpms, top = 10000, labels = NULL, pch = NULL,
+                      cex = 1, dim.plot = c(1, 2), ndim = min(7, ncol(logcpms) - 1),
+                      gene.selection = "common",
+                      xlab = NULL, ylab = NULL, plot = FALSE)$cmdscale.out
+colnames(mds) <- paste0("MDS", seq_len(ncol(mds)))
+mds <- as.data.frame(mds) %>% tibble::rownames_to_column(var = "names") %>%
+    dplyr::full_join(ext_metadata, by = "names")
+
+ggplotMDS(mds)
+ggsave(here("Rmd/de_analysis_figures/MDS_dim1_2_group_genotype_top10000.png"),
+       width =8.5, height = 6)
+
+
+mds <- limma::plotMDS(logcpms, top = nrow(logcpms), labels = NULL, pch = NULL,
+                      cex = 1, dim.plot = c(1, 2), ndim = min(7, ncol(logcpms) - 1),
+                      gene.selection = "common",
+                      xlab = NULL, ylab = NULL, plot = FALSE)$cmdscale.out
+colnames(mds) <- paste0("MDS", seq_len(ncol(mds)))
+mds <- as.data.frame(mds) %>% tibble::rownames_to_column(var = "names") %>%
+    dplyr::full_join(ext_metadata, by = "names")
+
+ggplotMDS(mds)
+ggsave(here("Rmd/de_analysis_figures/MDS_dim1_2_group_genotype_all_genes.png"),
+       width =8.5, height = 6)
+```
+
+
+# PCA plot
+
+We use the logCPM values for PCA, because they are normalized for library size and transcript length.
+
+```{r PCA-plot}
+## We need genes as columns --> transpose
+pca <- prcomp(t(logcpms))
+summary(pca)
+
+#Determine the proportion of variance of each component
+#Proportion of variance equals (PC stdev^2) / (sum all PCs stdev^2)
+proportionvariances <- ((pca$sdev^2) / (sum(pca$sdev^2)))*100
+
+## Scree plot: proportion of variance explained by each principal component:
+ggplot(data.frame(prop_var_expl = proportionvariances, 
+                  principal_component = seq(1:length(proportionvariances))),
+       aes(x = principal_component, y = prop_var_expl)) +
+  geom_bar(stat = "identity") + 
+  theme_bw(base_size = 16)
+ggsave(here("Rmd/de_analysis_figures/PCA_scree_plot.png"), 
+       width = 6, height = 6)
+
+## PCA plot
+pca_x <- as.data.frame(pca$x) %>% tibble::rownames_to_column(var = "names") %>%
+    dplyr::full_join(data.frame(colData(sg)), by = "names")
+
+ggplotPCA <- function(dat, x = "PC1", y = "PC2", color = "group", 
+                      shape = "genotype", 
+                      color_pal = c(brewer.pal(8,name = "Dark2"), "black")){
+  ggplot(dat, aes_string(x = x, y = y, color = color, shape = shape)) +
+    geom_point(size = 3, alpha = 0.8) +
+    theme_bw(base_size = 16) +
+    scale_color_manual(values = color_pal) + 
+    theme(aspect.ratio = 1)
+}
+
+ggplotPCA(pca_x)
+ggsave(here("Rmd/de_analysis_figures/PCA_PC1_2_plot.png"), 
+       width = 8.5, height = 6)
+ggplotPCA(pca_x, x = "PC1", y = "PC3")
+ggsave(here("Rmd/de_analysis_figures/PCA_PC1_3_plot.png"), 
+       width = 8.5, height = 6)
+ggplotPCA(pca_x, x = "PC1", y = "PC3", shape = "age")
+ggplotPCA(pca_x, x = "PC1", y = "PC4")
+
+## custom colors for Magda
+pca_x$preparation.age <- factor(paste0(pca_x$fraction, ".", pca_x$age), 
+                                levels = c("H.1_mo", "H.6_mo", "SNS.1_mo", "SNS.6_mo", "N.1_mo") )
+
+ggplotPCA(pca_x, x = "PC1", y = "PC3", shape = "genotype", 
+          color = "preparation.age", 
+          color_pal = c(brewer.pal(5, name = "Paired")))
+ggsave(here("Rmd/de_analysis_figures/PCA_PC1_3_plot_custom.pdf"), 
+       width = 7, height = 5)
+```
+
+The MDS plot from all genes is nearly identical to the PCA plot. So there must be some signal among the top 500 genes that is separating the samples.
+
+
+## PCA of the all genes used for DE analysis
+Only a subset of all genes was used for the DE analysis with edgeR. Lowly expressed genes were filtered out.
+
+```{r}
+g <- rowData(sg)[["edgeR:groupSNS.KI.6_mo-groupSNS.WT.6_mo"]] %>% 
+  as.data.frame %>% rownames_to_column("rowname") %>% 
+  dplyr::filter(!is.na(logFC)) %>% dplyr::pull(rowname)
+logcpms_part <- logcpms[g,]
+pca <- prcomp(t(logcpms_part))
+summary(pca)
+
+pca_x <- as.data.frame(pca$x) %>% tibble::rownames_to_column(var = "names") %>%
+    dplyr::full_join(data.frame(colData(sg)), by = "names")
+
+ggplotPCA <- function(dat, x = "PC1", y = "PC2", color = "group", shape = "genotype"){
+  ggplot(dat, aes_string(x = x, y = y, color = color, shape = shape)) +
+    geom_point(size = 3) +
+    theme_bw(base_size = 16) +
+    scale_color_manual(values = c(brewer.pal(8,name = "Dark2"), "black")) + 
+    theme(aspect.ratio = 1)
+}
+ggplotPCA(pca_x)
+ggsave(here("Rmd/de_analysis_figures/PCA_PC1_2_plot_logcpm_part.png"), 
+       width = 8.5, height = 6)
+ggplotPCA(pca_x, x = "PC1", y = "PC3")
+ggsave(here("Rmd/de_analysis_figures/PCA_PC1_3_plot_logcpm_part.png"), 
+       width = 8.5, height = 6)
+```
+
+The resulting plot is nearly identical!
+
+
+# SVA
+
+Surrogate variable analysis to find potential batch effects. SVA can be used in two ways:
+
+(1) identifyingand estimating surrogate variables for unknown sources of variation in high-throughput experiments and (2) directly removing known batch effects usingComBat.
+
+We are interested in (1) because we want to check for potential batch effects that might explain the cluster separation in the MDS plot.
+
+We first need to set up the full model and the alternative model:
+```{r}
+mod <- model.matrix(~as.factor(group), data = metadata)
+## We are not adjusting for any other variable in this analysis
+mod0 <- model.matrix(~1, data = metadata)
+```
+
+For sequencing data, which are often represented as counts, a more suitable model may involve the use of a moderated log function. For example in Step 1 of the algorithm we may first transform the gene expression measurements by applying the function log(gij+c)for a small positive constant. In the analyses that follow we will set c= 1.
+
+Estimate the number of latent factors and apply `sva` to estimate surrogate variables:
+```{r}
+counts <- assay(sg, "counts")
+## Filter out low count genes
+keep <- apply(counts, 1, function(x) length(x[x>5])>= 6)
+table(keep)
+counts1 <- counts[keep,]
+
+n_sv <- num.sv(counts1, mod, method = "leek")
+n_sv
+## The function applies log(count + 1) before performing sva:
+# svaseq_res <- svaseq(counts1, mod, mod0, n.sv = n_sv)
+# svaseq_res<- svaseq(counts1, mod, mod0, n.sv = n_sv-1)
+# svaseq_res<- svaseq(counts1, mod, mod0, n.sv = 1)
+sva_res<- svaseq(counts1, mod, mod0)
+```
+
+I am running into errors with this.....
+It only worked when I set the number of sv to 1 or if I do not provide a value at all.
+
+
+The sva function returns a list with four components, sv, pprob.gam, pprob.b, n.sv. sv is a matrix whose columns correspond to the estimated surrogate variables. They can be used in downstream analyses as described below. pprob.gam is the posterior probability that each gene is associated with one or more latent variables. pprob.b is the posterior probability that each gene is associated with the variables of interest. n.sv is the number of surrogate variables estimated by the sva.
+
+
+Which genes are strongly associated with latent variables?
+```{r}
+summary(sva_res$pprob.gam)
+```
+More than half of all genes are associated with latent variables?
+
+# UMAP
+
+```{r UMAP-run, cache = TRUE, include = FALSE, eval = FALSE}
+# Filter out lowly expressed genes
+keep <- apply(logcpms, 1, function(x) length(x[x>=-2])>= 6)
+table(keep)
+logcpms1 <- logcpms[keep,]
+
+umap_res <- umap(logcpms1)
+umap_res
+```
+
+Visualizing the UMAP results:
+```{r}
+## Set random seed for reproducibility
+custom_config <-  umap.defaults
+custom_config$random_state = 42
+
+umap_res <- umap(t(logcpms), custom_config)
+dat <- umap_res$layout %>% as.data.frame()
+colnames(dat) <- c("UMAP1", "UMAP2")
+dat$names <- colnames(logcpms)
+dat <- dat %>% dplyr::full_join(ext_metadata, by = "names")
+
+ggplotUMAP <- function(dat, x = "UMAP1", y = "UMAP2", color = "group", 
+                       shape = "genotype"){
+  ggplot(dat, aes_string(x = x, y = y, color = color, shape = shape)) +
+    geom_point(size = 3, alpha = 0.8) +
+    theme_bw(base_size = 16) +
+    scale_color_manual(values = c(brewer.pal(8,name = "Dark2"), "black")) + 
+    theme(aspect.ratio = 1)
+}
+
+ggplotUMAP(dat)
+ggsave(here("Rmd/de_analysis_figures/UMAP_42.png"),
+       width =8.5, height = 6)
+ggplotUMAP(dat, color = "gender")
+ggsave(here("Rmd/de_analysis_figures/UMAP_42_gender.png"),
+       width =8.5, height = 6)
+ggplotUMAP(dat, color = "batch")
+ggsave(here("Rmd/de_analysis_figures/UMAP_42_batch.png"),
+       width =8.5, height = 6)
+
+## different seeds
+custom_config$random_state = 1234
+umap_res <- umap(t(logcpms), custom_config)
+dat <- umap_res$layout %>% as.data.frame()
+colnames(dat) <- c("UMAP1", "UMAP2")
+dat$names <- colnames(logcpms)
+dat <- dat %>% dplyr::full_join(ext_metadata, by = "names")
+ggplotUMAP(dat)
+ggsave(here("Rmd/de_analysis_figures/UMAP_1234.png"),
+       width =8.5, height = 6)
+ggplotUMAP(dat, color = "batch")
+ggsave(here("Rmd/de_analysis_figures/UMAP_1234_batch.png"),
+       width =8.5, height = 6)
+
+
+custom_config$random_state = 5
+umap_res <- umap(t(logcpms), custom_config)
+dat <- umap_res$layout %>% as.data.frame()
+colnames(dat) <- c("UMAP1", "UMAP2")
+dat$names <- colnames(logcpms)
+dat <- dat %>% dplyr::full_join(ext_metadata, by = "names")
+ggplotUMAP(dat)
+ggsave(here("Rmd/de_analysis_figures/UMAP_5.png"),
+       width =8.5, height = 6)
+ggplotUMAP(dat, color = "batch")
+ggsave(here("Rmd/de_analysis_figures/UMAP_5_batch.png"),
+       width =8.5, height = 6)
+```
+
+# Number of DE genes in each comparison
+
+How many genes are differentially expressed (FDR <= 0.05) in each comparison?
+
+```{r}
+count_DE <- function(contr = ""){
+  contr
+  d <- rowData(sg)[[contr]]
+  d <- d %>% as.data.frame %>% arrange(FDR)
+  list(up = d %>% filter(FDR <= 0.05 & logFC > 0) %>% nrow, 
+       down = d %>% filter(FDR <= 0.05 & logFC < 0) %>% nrow)
+}
+
+## all comparison:
+comp<- names(rowData(sg))[7:18]
+de_res <- data.frame(contrast = comp, up = NA, down = NA)
+for (i in comp) {
+  tmp <- count_DE(i)
+  de_res[de_res$contr == i,]$up <- tmp[["up"]]
+  de_res[de_res$contr == i,]$down <- tmp[["down"]]
+}
+de_res
+```
+
+# Volcano Plots
+
+We are mostly intersted in the comparison between genotypes at a specific timepoint.
+
+```{r}
+## select the ones we are interested in:
+comp<- names(rowData(sg))[7:10]
+rowData(sg)[[10]]
+
+## Determine the maximal logFC range in all comparisons
+x_range <- 0
+y_range <- 0
+for (i in comp){
+  dat <- rowData(sg)[[i]]
+  dat <- dat[!is.na(dat$PValue),]
+  x_range<- max(x_range, max(abs(dat$logFC)))
+  y_range <- max(y_range, max(dat$mlog10PValue))
+}
+x_range
+y_range
+```
+
+We first have a look at the Volcano plot of each comparison to get a first impression of the strength of the gene expression changes.
+
+```{r "volcano-plots",  warning = FALSE}
+## Volcano plot with labeled genes (top p-value or logFC)
+ggplotVolcano <- function(dat, outfile, alpha = 0.8, FUS_targets = NULL, 
+                          pvalue_shapes = FALSE, color_targets = FALSE, 
+                          label = "both", label_coord = 1.5, 
+                          x_range = NULL, y_range = NULL){
+
+  dat <- dat[!is.na(dat$PValue),]
+  df <- data.frame(logFC = dat$logFC, mlog10PValue = dat$mlog10PValue, 
+                      FDR = dat$FDR, gene = dat$gene_name)
+  
+  p <- ggplot(df, aes(x = logFC, y = mlog10PValue))
+   
+  if(is.null(FUS_targets)){
+    repel <- df %>% filter(FDR <= 0.05) %>% arrange(desc(mlog10PValue))
+    p <- p + geom_point(alpha = alpha, aes(color = FDR <= 0.05)) +
+      scale_color_manual(values = c("TRUE" = "red", "FALSE" = "darkgrey"))
+  } else {
+    repel <- df %>% filter(gene %in% FUS_targets) %>% 
+      arrange(desc(mlog10PValue))
+
+    if (pvalue_shapes){
+      p <- p + geom_point(data = df %>% filter(!gene %in% FUS_targets), 
+                   aes(color = "darkgrey", shape = FDR <= 0.05, 
+                       alpha = FDR <= 0.05)) + 
+        geom_point(data = df %>% filter(gene %in% FUS_targets),
+                 aes(color = "red", shape = FDR <= 0.05, alpha = FDR <= 0.05)) +
+      scale_color_manual(name = "FUS targets", labels = c("FALSE", "TRUE"), 
+                         values = c("darkgrey", "red")) + 
+      scale_shape_manual(name = "FDR <= 0.05", labels = c("FALSE", "TRUE"), 
+                         values = c(18, 19)) + 
+      scale_alpha_manual(name = "FDR <= 0.05", labels = c("FALSE", "TRUE"), 
+                         values = c(0.5, 0.8))
+    } else {
+      if (color_targets){
+        # 2: sign. 3: sign + FUS target 1: not sign + FUS target 0: not sign
+        # sign + 2
+        # FUS target + 1
+        col <- rep(0, nrow(df))
+        col[df$gene %in% fus_genes] <- 1
+        col[df$FDR <= 0.05] <- col[df$FDR <= 0.05] + 2
+        df$col <- factor(col, levels = c(0, 2, 1, 3))
+        p <- p + geom_point(data = df %>% dplyr::arrange(col), 
+                            aes(color = as.factor(col)), alpha = alpha) + 
+          scale_color_manual(name = "Genes", breaks = c(0, 1, 2, 3),
+                             labels = c("FDR > 0.05", "FUS target", "FDR <= 0.05", "FDR <= 0.05 &\n FUS target"), 
+                             values = c("darkgrey", "red", "steelblue", "steelblue2"))
+      } else{
+        p <- p + geom_point(data = df %>% filter(!gene %in% FUS_targets), 
+                     aes(color = "darkgrey"), alpha = alpha) + 
+          geom_point(data = df %>% filter(gene %in% FUS_targets),
+                 aes(color = "red"), alpha = alpha) +
+        scale_color_manual(name = "FUS targets", labels = c("FALSE", "TRUE"), 
+                           values = c("darkgrey", "red"))
+      }
+    }
+  }
+  p <- p + ggtitle(str_split(i, ":", simplify = TRUE)[,2]) +
+    theme_bw() +
+    theme(text = element_text(size = 16)) + 
+    ylab("-log10(p-value)") 
+  
+  if (label == "both"){
+    top <- repel %>% dplyr::slice(1:10)
+    if (nrow(repel) > 10){
+      repel <- repel %>% dplyr::slice(11:n()) %>% arrange(desc(abs(logFC))) %>% 
+      dplyr::slice(1:15) %>% rbind(top)
+    } else {
+    repel <- top 
+    }
+  } else if(label == "top"){
+    repel <- repel %>% dplyr::slice(1:15)
+  } else if (label == "logFC"){
+    repel <- repel %>% arrange(desc(abs(logFC))) %>% 
+      dplyr::slice(1:15) %>% rbind(top)
+  }
+  p <- p + geom_text_repel(data = repel %>% filter(logFC > 0), 
+                           aes(label = gene), xlim = c(label_coord, NA), 
+                           segment.color = "grey50", show.legend = FALSE) +
+      geom_text_repel(data = repel %>% filter(logFC < 0), 
+                      aes(label = gene), xlim = c(NA, -label_coord), 
+                      segment.color = "grey50", show.legend = FALSE)
+  
+  ## x and y-axis range
+  if(!is.null(x_range) & !is.null(y_range)){
+      p <- p + coord_cartesian(xlim = c(-x_range, x_range), ylim = c(0, y_range))
+  }
+
+  print(p)
+  ggsave(filename = outfile, plot = p, width = 7, height = 6, device = "png")
+}
+
+for (i in comp){
+  file_name <- paste0("Rmd/de_analysis_figures/volcano_",
+                      str_split(i, ":", simplify = TRUE)[,2], ".png")
+  ggplotVolcano(rowData(sg)[[i]], here(file_name), label_coord = 0.8, 
+                x_range = x_range, y_range = y_range)
+}
+```
+
+Why are some of the genes with high logFC not significant, i.e. why do they have high p-values?
+
+```{r}
+comp[2]
+dat <- rowData(sg)[[comp[2]]]
+dat <- dat[!is.na(dat$PValue),]
+## gene with the highest logFC
+gene <- row.names(dat[which.max(abs(dat$logFC)),])
+
+## plot logCPM of all samples
+ggplot(data.frame(logCPM = assay(sg, "logcpm")[gene,],
+           group = metadata$group),
+       aes(x = group, y = logCPM, col = group)) +
+  geom_jitter(alpha = 0.6, size = 2.5, width = 0.3) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_color_manual(values = c(brewer.pal(8,name = "Dark2"), "black"))
+```
+
+The gene is not expressed in SNS WT 1 months, but it is expressed in a few samples in SNS KI 1 month. Thus SNS KI 1 month has high variance.
+
+```{r}
+comp[3]
+dat <- rowData(sg)[[comp[3]]]
+dat <- dat[!is.na(dat$PValue),]
+## gene with the highest logFC
+gene <- row.names(dat[which.max(abs(dat$logFC)),])
+
+## plot logCPM of all samples
+ggplot(data.frame(logCPM = assay(sg, "logcpm")[gene,],
+           group = metadata$group),
+       aes(x = group, y = logCPM, col = group)) +
+  geom_jitter(alpha = 0.6, size = 2.5, width = 0.3) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_color_manual(values = c(brewer.pal(8,name = "Dark2"), "black"))
+```
+
+The gene is very lowly expressed, but one sample in homogenate KI 6 months and SNS KI 6 months have high expression. Thus, the variance is high which leads to non significant p-values.
+
+
+# Gene counts of some examples
+
+To get a feeling for the quality and magnitude of changes, we have a look at the read counts of some genes.
+Also, we want to check if the SNS samples are really depleted of nuclear RNAs and enriched for RNAs of synaptic genes.
+
+Synapse specific genes: Camk2a and synaptophysin (Syp)
+
+We plot the log2CPM of all samples, so a difference of +1 log2CPM means doubling the number of reads.
+```{r qc-genes-logCPM}
+
+plot_gene_logCPM <- function(sg, gene = "Camk2a"){
+  ggplot(data.frame(logCPM = assay(sg, "logcpm")[rowData(sg)$gene_name == gene,],
+                  group = metadata$group),
+       aes(x = group, y = logCPM, col = group)) +
+  geom_sina(alpha = 0.6, size = 2.5) +
+  theme_bw(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_color_manual(values = c(brewer.pal(8,name = "Dark2"), "black")) +
+  ggtitle(gene)
+}
+
+plot_gene_logCPM(sg, "Fus")
+## Synaptic proteins
+plot_gene_logCPM(sg, "Camk2a")
+plot_gene_logCPM(sg, "Syp")
+## Nuclear ncRNAs
+plot_gene_logCPM(sg, "Malat1")
+# nuclear paraspeckle assembly transcript 1 (non-protein coding)
+plot_gene_logCPM(sg, "Neat1")
+## FUS target genes with most peaks
+# Solute Carrier Family 1 Member 2, glutamate transporter
+plot_gene_logCPM(sg, "Slc1a2")
+plot_gene_logCPM(sg, "Sparcl1")
+plot_gene_logCPM(sg, "Chgb")
+plot_gene_logCPM(sg, "Scd2")
+plot_gene_logCPM(sg, "Map2")
+plot_gene_logCPM(sg, "Glul")
+plot_gene_logCPM(sg, "Nrxn1")
+```
+
+# DE gene lists
+
+
+## DE genes in total cortex homogenate
+```{r DE-homogenate-6mo}
+comp[3]
+hom_6mo <- rowData(sg)[[comp[3]]]
+hom_6mo <- hom_6mo %>% as.data.frame %>% arrange(FDR)
+hom_6mo <- list(res = hom_6mo, 
+                up = hom_6mo %>% filter(FDR <= 0.05 & logFC > 0),
+                down = hom_6mo %>% filter(FDR <= 0.05 & logFC < 0))
+hom_6mo[["up"]]
+hom_6mo[["down"]]
+```
+
+# Overlap of total cortex DE genes with synaptic FUS targets
+
+```{r overlap-lists-homogenate, dependson = "file-names"}
+fus <- read.table(fus_targets, header = TRUE)
+fus_genes <- fus$gene_name
+fus_genes %>% length
+
+## Overlap with FUS targets
+olap_up_hom <- hom_6mo[["up"]] %>% filter(gene_name %in% fus_genes)
+olap_up_hom
+olap_down_hom <- hom_6mo[["down"]] %>% filter(gene_name %in% fus_genes)
+olap_down_hom
+```
+
+## UpSet plot
+
+We make an upset plot to visualize the intersection between the different sets.
+```{r upset-plot-cortex, dependson="overlap-lists-homogenate"}
+sets <- list(FUS_targets = fus_genes, cortex_6mo_up = hom_6mo[["up"]]$gene_name,
+             cortex_6mo_down = hom_6mo[["down"]]$gene_name)
+comb_mat <- make_comb_mat(sets, mode = "distinct")
+
+UpSet(comb_mat, set_order = c("FUS_targets", "cortex_6mo_up", "cortex_6mo_down"),
+      comb_col = c("#117733", "#882255", "#332288")[comb_degree(comb_mat)], 
+      pt_size = unit(5, "mm"))
+
+png(here("Rmd/de_analysis_figures/UpSet_FUS_targets_homogenate_6mo_overlap.png"), 
+    width = 7, height = 5, units = "in", res = 300)
+UpSet(comb_mat, set_order = c("FUS_targets", "cortex_6mo_up", "cortex_6mo_down"),
+      comb_col = c("#117733", "#882255", "#332288")[comb_degree(comb_mat)], 
+      pt_size = unit(5, "mm"))
+dev.off()
+```
+
+
+## Write gene lists
+
+```{r, dependson="overlap-lists-homogenate"}
+write.table(hom_6mo[["up"]], here("results/H.KI.6_mo_vs_H.WT.6_mo_up.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(hom_6mo[["down"]], here("results/H.KI.6_mo_vs_H.WT.6_mo_down.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(olap_up_hom, here("results/H.KI.6_mo_vs_H.WT.6_mo_up_FUS_targets.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(olap_down_hom, here("results/H.KI.6_mo_vs_H.WT.6_mo_down_FUS_targets.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+```
+
+
+## DE genes at the synapse
+```{r DE-SNS-6mo}
+comp[4]
+sns_6mo <- rowData(sg)[[comp[4]]]
+sns_6mo <- sns_6mo %>% as.data.frame %>% arrange(FDR)
+sns_6mo <- list(res = sns_6mo, 
+                up = sns_6mo %>% filter(FDR <= 0.05 & logFC > 0),
+                down = sns_6mo %>% filter(FDR <= 0.05 & logFC < 0))
+sns_6mo[["up"]] %>% nrow
+sns_6mo[["down"]] %>% nrow
+```
+
+# Overlap of DE genes with synaptic FUS targets
+
+We want to know how many of the differentially expressed genes are among the FUS targets. We are especially intersted in the up and down regulated genes upon FUS KI at 6 months in the SNS sample.
+
+```{r overlap-lists, dependson="file-names"}
+fus <- read.table(fus_targets, header = TRUE)
+fus_genes <- fus$gene_name
+fus_genes %>% length
+
+## Overlap with FUS targets
+olap_up <- sns_6mo[["up"]] %>% filter(gene_name %in% fus_genes)
+olap_up
+olap_down <- sns_6mo[["down"]] %>% filter(gene_name %in% fus_genes)
+olap_down
+```
+
+## UpSet plot
+
+We make an upset plot to visualize the intersection between the different sets.
+```{r upset-plot, dependson="overlap-lists"}
+sets <- list(FUS_targets = fus_genes, SNS_6mo_up = sns_6mo[["up"]]$gene_name,
+             SNS_6mo_down = sns_6mo[["down"]]$gene_name)
+comb_mat <- make_comb_mat(sets, mode = "distinct")
+
+UpSet(comb_mat, set_order = c("FUS_targets", "SNS_6mo_up", "SNS_6mo_down"),
+      comb_col = c("#117733", "#882255", "#332288")[comb_degree(comb_mat)], 
+      pt_size = unit(5, "mm"))
+
+png(here("Rmd/de_analysis_figures/UpSet_FUS_targets_SNS_6mo_overlap.png"), 
+    width = 7, height = 5, units = "in", res = 300)
+UpSet(comb_mat, set_order = c("FUS_targets", "SNS_6mo_up", "SNS_6mo_down"),
+      comb_col = c("#117733", "#882255", "#332288")[comb_degree(comb_mat)], 
+      pt_size = unit(5, "mm"))
+dev.off()
+```
+
+
+## Write gene lists
+
+```{r}
+write.table(sns_6mo[["up"]], here("results/SNS.KI.6_mo_vs_SNS.WT.6_mo_up.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(sns_6mo[["down"]], here("results/SNS.KI.6_mo_vs_SNS.WT.6_mo_down.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(olap_up, here("results/SNS.KI.6_mo_vs_SNS.WT.6_mo_up_FUS_targets.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(olap_down, here("results/SNS.KI.6_mo_vs_SNS.WT.6_mo_down_FUS_targets.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+```
+
+
+## Volcano plot with labeled FUS target genes
+
+We use the shape of each point to mark the significant genes and the color for the FUS target genes.
+
+```{r volcano-FUS-targets}
+for (i in comp){
+  file_name <- paste0("Rmd/de_analysis_figures/volcano_",
+                      str_split(i, ":", simplify = TRUE)[,2], "_FUS_targets.png")
+  ggplotVolcano(rowData(sg)[[i]], here(file_name), FUS_targets = fus_genes, 
+                color_targets = FALSE, pvalue_shapes = FALSE,
+                x_range = x_range, y_range = y_range)
+}
+```
+
+The color indicates the significant genes and a different color marks the FUS targets among the significant genes.
+
+  * Grey = not significant
+  * Red = significant
+  * darkblue = FUS target & not significant
+  * blue = FUS target & significant
+```{r}
+for (i in comp){
+  file_name <- paste0("Rmd/de_analysis_figures/volcano_",
+                      str_split(i, ":", simplify = TRUE)[,2], "_FUS_targets_color.png")
+  ggplotVolcano(rowData(sg)[[i]], here(file_name), FUS_targets = fus_genes, 
+                pvalue_shapes = FALSE, color_targets = TRUE, alpha = 0.8, label = "top",
+                x_range = x_range, y_range = y_range)
+}
+```
+
+
+
+## Analysis of some FUS targets
+
+Gm20388 is a very long gene that overlaps with many other genes. The 5' and 3' ends are overlapping other exons and UTRs and it seems as if FUS is actually binding the other genes. The Gm20388 RNA was only detected in 2 SNS KI 6 months samples, but not in any of the SNS WT samples.
+
+```{r}
+ggplot(data.frame(logCPM = assay(sg, "logcpm")[rowData(sg)$gene_name == "Gm20388",],
+           group = metadata$group),
+       aes(x = group, y = logCPM, col = group)) +
+  geom_jitter(alpha = 0.6, size = 2.5, width = 0.3) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_color_manual(values = c(brewer.pal(8,name = "Dark2"), "black"))
+```
+
+![Gm20388 overview](img/Gm20388_overview.png)
+
+![Gm20388 5' UTR](img/Gm20388_5UTR.png)
+
+![Gm20388 3' UTR](img/Gm20388_3UTR.png)
+
+
+# ORA of DE genes
+
+As background, we use all genes that have cpm >1 in all SNS WT 6months replicates?
+Or at least half of the replicates: >=3 samples?
+
+```{r convert-ensembl-ID-entrez, cache = TRUE, dependson="overlap-lists"}
+## all genes with at least 3 samples with >= 1 cpm
+# sns_bg <- assay(sg, "logcpm") %>% 
+#   as.data.frame() %>% dplyr::select(starts_with("6_mo_WT_SNS")) %>% 
+#   rownames_to_column("gene_id") %>%
+#   dplyr::filter(., rowSums(dplyr::select(., -gene_id) > 0) >= 3)
+
+## All genes with >= 1CPM in all replicates of SNS WT 6 months
+sns_bg <- group_genes[["SNS.WT.6_mo"]] %>% 
+  tidyr::separate(gene_id, into = c("gene_id", "gene_name"), sep = "__")
+
+## get the entrez ids of the bg genes
+sns_bg_ensembl <- sns_bg$gene_id
+
+## convert to Entrez IDs
+ensembl <- useMart("ensembl")
+ensembl <- useDataset("mmusculus_gene_ensembl", mart = ensembl)
+
+if (file.exists(here("Rmd", "rds", "sns_bg_entrez.rds"))) {
+  sns_bg <- readRDS(here("Rmd", "rds", "sns_bg_entrez.rds"))  
+} else{
+  ## convert to Entrez IDs
+  sns_bg <- getBM(attributes = c("ensembl_gene_id","entrezgene_id"), 
+                         values = sns_bg_ensembl, mart = ensembl )
+  sns_bg <- sns_bg[sns_bg$ensembl_gene_id %in% sns_bg_ensembl, ]
+  saveRDS(sns_bg, here("Rmd", "rds", "sns_bg_entrez.rds")) 
+}
+
+if (file.exists(here("Rmd", "rds", "sns_6mo_up_entrez.rds"))) {
+  sns_6mo_up <- readRDS(here("Rmd", "rds", "sns_6mo_up_entrez.rds"))  
+} else{
+  ## convert to Entrez IDs
+  sns_6mo_up <- getBM(attributes = c("ensembl_gene_id","entrezgene_id"), 
+                         values = sns_6mo[["up"]]$gene_id, mart = ensembl )
+  sns_6mo_up <- sns_6mo_up[sns_6mo_up$ensembl_gene_id %in% 
+                                           sns_6mo[["up"]]$gene_id, ]
+  saveRDS(sns_6mo_up, here("Rmd", "rds", "sns_6mo_up_entrez.rds")) 
+}
+
+if (file.exists(here("Rmd", "rds", "sns_6mo_down_entrez.rds"))) {
+  sns_6mo_down <- readRDS(here("Rmd", "rds", "sns_6mo_down_entrez.rds"))  
+} else{
+  ## convert to Entrez IDs
+  sns_6mo_down <- getBM(attributes = c("ensembl_gene_id","entrezgene_id"), 
+                         values = sns_6mo[["down"]]$gene_id, mart = ensembl )
+  sns_6mo_down <- sns_6mo_down[sns_6mo_down$ensembl_gene_id %in% 
+                                           sns_6mo[["down"]]$gene_id, ]
+  saveRDS(sns_6mo_down, here("Rmd", "rds", "sns_6mo_down_entrez.rds")) 
+}
+
+targets_up_entrez <- getBM(attributes = c("ensembl_gene_id","entrezgene_id"), 
+                         values = olap_up$gene_id, mart = ensembl )
+targets_up_entrez <- targets_up_entrez[targets_up_entrez$ensembl_gene_id %in% 
+                                         olap_up$gene_id, ]
+
+targets_down_entrez <- getBM(attributes = c("ensembl_gene_id","entrezgene_id"), 
+                         values = olap_down$gene_id, mart = ensembl )
+targets_down_entrez <- targets_down_entrez[targets_down_entrez$ensembl_gene_id %in% 
+                                         olap_down$gene_id, ]
+```
+
+
+```{r ORA-gene-length-matching, cache = TRUE}
+gtf <- import(gtf_file)
+
+## Match gene length to bg list
+genes <- gtf[gtf$type == "gene"]
+m <- match(sns_bg$ensembl_gene_id, genes$gene_id)
+gene_length <- width(genes)[m]
+```
+
+Significant upregulated genes in SNS KI at 6 months compared to WT
+```{r ORA-SNS-up, cache = TRUE, dependson="convert-ensembl-ID-entrez"}
+## GO analysis with goana using gene length as covariate
+goana_SNS_up <- goana(de = unique(sns_6mo_up$entrezgene_id), species = "Mm", 
+                   universe = sns_bg$entrezgene_id, covariate = gene_length)
+goana_SNS_up <- goana_SNS_up[order(goana_SNS_up$P.DE, decreasing = FALSE),]
+## What are the most enriched annotation terms?
+topGO(goana_SNS_up, ontology = "CC", number = 10)
+topGO(goana_SNS_up, ontology = "BP", number = 10)
+topGO(goana_SNS_up, ontology = "MF", number = 10)
+```
+
+```{r ORA-SNS-up-write-table, include = FALSE}
+write.table(topGO(goana_SNS_up, ontology = "CC", number = 50), 
+            here("results/goana_CC_SNS.KI.6_mo_vs_SNS.WT.6_mo_up.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(topGO(goana_SNS_up, ontology = "BP", number = 50), 
+            here("results/goana_BP_SNS.KI.6_mo_vs_SNS.WT.6_mo_up.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(topGO(goana_SNS_up, ontology = "MF", number = 50), 
+            here("results/goana_MF_SNS.KI.6_mo_vs_SNS.WT.6_mo_up.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+```
+
+
+Significant downregulated genes in SNS KI at 6 months compared to WT
+```{r ORA-SNS-down, cache = TRUE, dependson="convert-ensembl-ID-entrez"}
+## GO analysis with goana using gene length as covariate
+goana_SNS_down <- goana(de = unique(sns_6mo_down$entrezgene_id), species = "Mm", 
+                   universe = sns_bg$entrezgene_id, covariate = gene_length)
+goana_SNS_down <- goana_SNS_down[order(goana_SNS_down$P.DE, decreasing = FALSE),]
+## What are the most enriched annotation terms?
+topGO(goana_SNS_down, ontology = "CC", number = 10)
+topGO(goana_SNS_down, ontology = "BP", number = 10)
+topGO(goana_SNS_down, ontology = "MF", number = 10)
+```
+
+```{r ORA-SNS-down-write-table, include = FALSE}
+write.table(topGO(goana_SNS_down, ontology = "CC", number = 50), 
+            here("results/goana_CC_SNS.KI.6_mo_vs_SNS.WT.6_mo_down.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(topGO(goana_SNS_down, ontology = "BP", number = 50), 
+            here("results/goana_BP_SNS.KI.6_mo_vs_SNS.WT.6_mo_down.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(topGO(goana_SNS_down, ontology = "MF", number = 50), 
+            here("results/goana_MF_SNS.KI.6_mo_vs_SNS.WT.6_mo_down.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+```
+
+
+All FUS targets that are also significant DE genes in SNS KI at 6 months compared to WT 
+```{r ORA-SNS-targets, cache = TRUE, dependson="convert-ensembl-ID-entrez"}
+## upregulated
+goana_SNS_targets_up <- goana(de = unique(targets_up_entrez$entrezgene_id), species = "Mm", 
+                   universe = sns_bg$entrezgene_id, covariate = gene_length)
+goana_SNS_targets_up <- goana_SNS_targets_up[order(goana_SNS_targets_up$P.DE, decreasing = FALSE),]
+topGO(goana_SNS_targets_up, ontology = "CC", number = 10)
+topGO(goana_SNS_targets_up, ontology = "BP", number = 10)
+topGO(goana_SNS_targets_up, ontology = "MF", number = 10)
+
+## downregulated
+goana_SNS_targets_down <- goana(de = unique(targets_down_entrez$entrezgene_id), species = "Mm", 
+                   universe = sns_bg$entrezgene_id, covariate = gene_length)
+goana_SNS_targets_down <- goana_SNS_targets_down[order(goana_SNS_targets_down$P.DE, decreasing = FALSE),]
+topGO(goana_SNS_targets_down, ontology = "CC", number = 10)
+topGO(goana_SNS_targets_down, ontology = "BP", number = 10)
+topGO(goana_SNS_targets_down, ontology = "MF", number = 10)
+```
+
+```{r ORA-SNS-targets-write-table, include = FALSE}
+write.table(topGO(goana_SNS_targets_up, ontology = "CC"), 
+            here("results/goana_CC_SNS.KI.6_mo_vs_SNS.WT.6_mo_up_FUS_targets.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(topGO(goana_SNS_targets_up, ontology = "BP"), 
+            here("results/goana_BP_SNS.KI.6_mo_vs_SNS.WT.6_mo_up_FUS_targets.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(topGO(goana_SNS_targets_up, ontology = "MF"), 
+            here("results/goana_MF_SNS.KI.6_mo_vs_SNS.WT.6_mo_up_FUS_targets.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+
+write.table(topGO(goana_SNS_targets_down, ontology = "CC"), 
+            here("results/goana_CC_SNS.KI.6_mo_vs_SNS.WT.6_mo_down_FUS_targets.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(topGO(goana_SNS_targets_down, ontology = "BP"), 
+            here("results/goana_BP_SNS.KI.6_mo_vs_SNS.WT.6_mo_down_FUS_targets.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(topGO(goana_SNS_targets_down, ontology = "MF"), 
+            here("results/goana_MF_SNS.KI.6_mo_vs_SNS.WT.6_mo_down_FUS_targets.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+```
+
+## Circle plot for ORA results
+
+Combined plot with the most important terms from all three ontologies:
+
+```{r ORA-circle-plot-combined, cache = TRUE, dependson="ORA-SNS-up"}
+## DE up
+# CC: 1, 5, 10, 14, 17
+# BP: 1, 4, 10, 11, 12, 17
+# MF: 1, 8, 10, 13
+df_comb <- rbind(topGO(goana_SNS_up, ontology = "CC", number = 17)[c(1, 5, 10, 14),], 
+                 topGO(goana_SNS_up, ontology = "BP", number = 17)[c(1, 4, 10, 17),],
+                 topGO(goana_SNS_up, ontology = "MF", number = 13)[c(1, 8, 10),])
+
+ggplot(df_comb, aes(x = -log10(P.DE), y = log2(DE), size = log2(N), fill = Ont)) + 
+  geom_point(shape = 21, alpha = 0.8)  +
+  theme_bw() +
+  theme(text = element_text(size = 20), 
+        aspect.ratio = 1, 
+        legend.position = "bottom", legend.direction="horizontal", 
+        legend.box = "horizontal")  +
+  geom_text_repel(aes(label=Term), size=5, data=df_comb, color = "black", 
+                  point.padding = 0.5, box.padding = 0.4, xlim = c(15, 160)) +
+  scale_size(breaks=pretty_breaks(4), range = c(3, 13)) +
+  guides(size = guide_legend("log2(genes with GO term)", title.position = "top"),
+         fill = guide_legend("Ontology", title.position = "top", 
+                             override.aes = list(size=5))) +
+  labs(x = "-log10(p-value)", y = "log2(DE genes with GO term)") +
+  scale_fill_locuszoom()
+ggsave(here("results/ORA_circle_plot_combined_SNS_up.png"), width = 6.5, height = 7.5)
+
+## Downregulated genes
+# CC: 1
+# BP: 1, 4, 6, 8
+# MG: 1, 2
+df_comb <- rbind(topGO(goana_SNS_down, ontology = "CC", number = 1), 
+                 topGO(goana_SNS_down, ontology = "BP", number = 8)[c(1, 4, 6, 8),],
+                 topGO(goana_SNS_down, ontology = "MF", number = 2))
+ggplot(df_comb, aes(x = -log10(P.DE), y = log2(DE), size = log2(N), fill = Ont)) + 
+  geom_point(shape = 21, alpha = 0.8)  +
+  theme_bw() +
+  theme(text = element_text(size = 20), 
+        aspect.ratio = 1, 
+        legend.position = "bottom", legend.direction="horizontal", 
+        legend.box = "horizontal")  +
+  geom_text_repel(aes(label=Term), size=5, data=df_comb, color = "black", 
+                  point.padding = 0.5, box.padding = 0.4, xlim = c(4.2, NA)) +
+  scale_size(breaks=pretty_breaks(4), range = c(3, 13)) +
+  guides(size = guide_legend("log2(genes with GO term)", title.position = "top"),
+         fill = guide_legend("Ontology", title.position = "top", 
+                             override.aes = list(size=5))) +
+  labs(x = "-log10(p-value)", y = "log2(DE genes with GO term)") +
+  scale_fill_locuszoom()
+
+ggsave(here("results/ORA_circle_plot_combined_SNS_down.png"), width = 6.5, height = 7.5)
+```
+
+
+# KEGG pathway analysis
+
+```{r kegga, cache = TRUE, dependson="convert-ensembl-ID-entrez"}
+## Upregulated DE genes
+## one-sided hypergeometric tests
+kegga_res<- kegga(de = unique(sns_6mo_up$entrezgene_id), species = "Mm",
+                   universe = sns_bg$entrezgene_id)
+## sort the pathways after raw p-value
+kegga_res <- kegga_res[order(kegga_res$P.DE, decreasing = FALSE),]
+topKEGG(kegga_res, number = 15)
+write.table(topKEGG(kegga_res), here("results/kegga_SNS.KI.6_mo_vs_SNS.WT.6_mo_up.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+
+## Down regulated DE genes
+kegga_res<- kegga(de = unique(sns_6mo_down$entrezgene_id), species = "Mm",
+                   universe = sns_bg$entrezgene_id)
+kegga_res <- kegga_res[order(kegga_res$P.DE, decreasing = FALSE),]
+topKEGG(kegga_res, number = 10)
+write.table(topKEGG(kegga_res), here("results/kegga_SNS.KI.6_mo_vs_SNS.WT.6_mo_down.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+
+## Upregulated DE genes + FUS targets
+kegga_res<- kegga(de = unique(targets_up_entrez$entrezgene_id), species = "Mm",
+                   universe = sns_bg$entrezgene_id)
+kegga_res <- kegga_res[order(kegga_res$P.DE, decreasing = FALSE),]
+topKEGG(kegga_res, number = 7)
+write.table(topKEGG(kegga_res), here("results/kegga_SNS.KI.6_mo_vs_SNS.WT.6_mo_up_FUS_targets.txt"),
+            quote = FALSE, row.names = FALSE, sep = "\t")
+
+## downregulated DE genes + FUS targets
+kegga_res<- kegga(de = unique(targets_down_entrez$entrezgene_id), species = "Mm",
+                   universe = sns_bg$entrezgene_id)
+kegga_res <- kegga_res[order(kegga_res$P.DE, decreasing = FALSE),]
+topKEGG(kegga_res, number = 3)
+```
+
+
+
+## KEGG pathway visualization
+
+We want to highlight our genes of interest in the corresponding pathways. For this, we use the R Bioconductor package `pathview`. We select the top pathways of the upregulated differentially expressed genes.
+
+We plot the most interesting pathways and color all DE up genes (red). Additionally, we mark all FUS targets among the DE genes (orange) and all FUS targets that are not DE (blue).
+
+```{r kegg_pathways, eval = TRUE, include = TRUE, warning = FALSE, message = FALSE, cache = TRUE, dependson="kegga"}
+## TODO: use the pathway IDs from kegga?
+
+## DE up genes: name and ID of the kegg pathwoay
+# 05033 Nicotine addiction
+# 04080 Neuroactive ligand-receptor interaction
+# 00510 N-Glycan biosynthesis
+# 04142 Lysosome
+# 04724 Glutamatergic synapse
+# 04360 Axon guidance
+pwlist_up <- c("05033", "04080", "00510", "04142", "04724", "04360")
+names(pwlist_up) <- c("Nicotine_addiction", "Neuroactive_ligand-receptor_interaction",
+                      "N-Glycan biosynthesis", "Lysosome", "Glutamatergic_synapse",
+                      "Axon_guidance")
+de_up <- sns_6mo_up %>% dplyr::filter(!is.na(entrezgene_id)) %>% 
+  pull(entrezgene_id) %>% as.character()
+
+## DE up + FUS targets
+# 05033 Nicotine addiction
+# 04024 cAMP signaling pathway
+# 04964 Proximal tubule bicarbonate reclamation
+# 04960 Aldosterone-regulated sodium reabsorption
+pwlist_up_target <- c("04024", "04964", "04960")
+names(pwlist_up_target) <- c("cAMP_signaling_pathway", "Proximal_tubule_bicarbonate_reclamation",
+                            "Aldosterone-regulated_sodium_reabsorption")
+## FUS targets
+fus_target_entrez <- getBM(attributes = c("ensembl_gene_id","entrezgene_id"), 
+                            values = fus$gene_id, mart = ensembl )
+fus_target_entrez <- fus_target_entrez[fus_target_entrez$ensembl_gene_id %in% 
+                                         fus$gene_id, ] %>% 
+  dplyr::filter(!is.na(entrezgene_id)) %>% 
+  pull(entrezgene_id) %>% as.character()
+
+### Pathview visualization of KEGG pathways
+data(gene.idtype.list)
+# gene.idtype.list  ## Ensembl IDs are supported
+
+## DE up genes are 1, DE up + FUS target are 0, FUS targets but not DE up are -1
+pvdata <- rep(0,length(unique(c(de_up, fus_target_entrez))))
+names(pvdata) <- unique(c(de_up, fus_target_entrez))
+pvdata[as.character(de_up)] <- 1
+pvdata[fus_target_entrez] <- pvdata[fus_target_entrez]-1
+
+for (i in names(pwlist_up)){
+  pathview(gene.data = pvdata, pathway.id = pwlist_up[i], 
+           species = 'mmu', gene.idtype = "entrez", 
+           discrete = list(gene = TRUE, cpd = FALSE), 
+           bins = list(gene = 2, cpd = 2), limit = list(gene = 1, cpd = 2),
+           both.dirs = list(gene = TRUE, cpd = TRUE),
+           low = list(gene = "lightblue", cpd = "lightblue"),
+           mid = list(gene = "orange", cpd = "orange"),
+           high = list(gene = "tomato", cpd = "tomato"),
+           out.suffix = i, same.layer = TRUE, res = 500, cex = 0.18, 
+           kegg.dir = here("results/pathview"))
+  ## We move the to the results directory
+  file_move(here("Rmd", paste0("mmu", pwlist_up[i], ".", i, ".png")), 
+            here("results/pathview"))
+}
+
+## All FUS target genes + DE up
+for (i in names(pwlist_up_target)){
+  pathview(gene.data = pvdata, pathway.id = pwlist_up_target[i], 
+           species = 'mmu', gene.idtype = "entrez", 
+           discrete = list(gene = TRUE, cpd = FALSE), 
+           bins = list(gene = 2, cpd = 2), limit = list(gene = 1, cpd = 2),
+           both.dirs = list(gene = TRUE, cpd = TRUE),
+           low = list(gene = "lightblue", cpd = "lightblue"),
+           mid = list(gene = "orange", cpd = "orange"),
+           high = list(gene = "tomato", cpd = "tomato"),
+           out.suffix = i, same.layer = TRUE, res = 500, cex = 0.18, 
+           kegg.dir = here("results/pathview"))
+  file_move(here("Rmd", paste0("mmu", pwlist_up_target[i], ".", i, ".png")), 
+            here("results/pathview"))
+}
+# alternative color: palevioletred
+# adjust legend with node.color ?
+  
+## I did not manage to adjust the legend. I will plot the legend separately, so it can be added to all figures.
+# plot an empty plot with the same colors
+my_plot <- data.frame(genes = as.factor(pvdata), gene_id = names(pvdata)) %>% 
+  ggplot(aes(x = genes, fill = genes)) + 
+    geom_bar() +
+    scale_fill_manual(values = c("lightblue", "orange", "tomato"), 
+                      labels = c("FUS target", "FUS target & DE up", "DE up"))
+legend <- cowplot::get_legend(my_plot)
+as_ggplot(legend)
+ggsave(here("results/kegg_pathway_legend.pdf"), width = 2, height = 2)
+```
+
+
+## Chord diagram of GO terms
+
+We plot a chord diagram to visualize the types of GO terms that are enriched in the list of DE genes in 6 months KI SNS.
+Additionally, we select only the "synapse" related terms and visualize the subclassification (GABA, glutamatergic, pre- and post-synapse)
+We create a plot for each of the three GO ontologies.
+
+
+We manually pick a set of GO terms (from the list of significant terms) that we want to visualize.
+
+```{r}
+topGO(goana_SNS_up, ontology = "CC", number = 50)
+sns_6mo_up
+sns_6mo_down
+
+sns_6mo_de <- rbind(sns_6mo_up, sns_6mo_down)
+sns_6mo_de$direction <- c(rep("up", nrow(sns_6mo_up)), rep("down", nrow(sns_6mo_down)))
+
+sns_6mo_de <- sns_6mo_de %>% dplyr::filter(!is.na(entrezgene_id))
+sns_6mo_de$entrezgene_id <- as.character(sns_6mo_de$entrezgene_id)
+
+## map all Entrez gene ids to GO terms
+tmp <- mget(sns_6mo_de$entrezgene_id, org.Mm.egGO)
+## filter annotation based on evidence codes
+## remove all annotations that are based on elctronic annotation (IEA) 
+## (not manually checked)
+tmp1 <- lapply(tmp, dropECode, code = "IEA")
+
+## select the CC annotation
+tmp2 <- lapply(tmp1, getOntology, ontology = "CC")
+
+## how many annotations per gene?
+sapply(tmp2, length) %>% summary
+
+## transform the list to a data.frame with columns:
+## Entrez ID and GO term
+go <- data.frame(entrez = unlist(sapply(names(tmp2), function(x) 
+                                                  rep(x, length(tmp2[[x]])))),
+                 GO_IDs = unlist(tmp2), stringsAsFactors = FALSE)
+## add the Term
+go$term <- Term(go$GO_IDs)
+## add the gene name
+go$gene_name <- AnnotationDbi::select(org.Mm.eg.db, keys=go$entrez, 
+                                      column = "SYMBOL", 
+                                      keytype = "ENTREZID")[["SYMBOL"]]
+
+go %>%
+  group_by(term) %>%
+  summarise(n = n()) %>% arrange(desc(n)) %>% head(n = 20)
+
+## We select some interesting terms based on this list and the significant GO terms
+cc_terms <- c("plasma membrane", "cytoskeleton", "endoplasmic reticulum", "synapse")
+## there are no significant downregulated terms
+
+## get the GO ID for each of the terms
+# cc_terms <- data.frame(term = cc_terms,id = go$GO_IDs[match(cc_terms, go$term)])
+go_searchs <- as.list(go$GO_IDs[match(cc_terms, go$term)])
+names(go_searchs) <- cc_terms
+  
+  
+#### Traverse the full tree to search for parent annotations
+## per gene, add list of all ancestor terms to table 
+goccanc <- as.list(GO.db::GOCCANCESTOR)
+
+get_ancestors <- Vectorize(function(go_id){
+  c(go_id, unlist(goccanc[[go_id]]))
+})
+
+go <- go %>% 
+  as_tibble() %>%
+  mutate(ancestors = get_ancestors(GO_IDs)) 
+
+## check for the different terms
+go <- go %>%
+  rowwise() %>%
+  mutate(plasma_membrane = go_searchs[["plasma membrane"]] %in% ancestors,
+         cytoskeleton = go_searchs[["cytoskeleton"]] %in% ancestors,
+         ER = go_searchs[["endoplasmic reticulum"]] %in% ancestors,
+         synapse = go_searchs[["synapse"]] %in% ancestors) 
+
+## annotate direction of change
+go <- go %>% left_join(sns_6mo_de, by = c("entrez" = "entrezgene_id")) 
+
+
+## we need an adjacency list
+##   from to value
+## 1    a  A     1
+## 2    b  B     2
+## 3    c  C     3
+
+## in our case 
+## direction  location  value
+golong <- gather(go, location, is_inside, 6:9)
+
+adj_list_cc <- golong %>% group_by(direction, location) %>% summarize(value = sum(is_inside))
+adj_list_cc
+
+  
+## Plotting with circlize
+pdf(here("results/chord_diagram_CC.pdf"))
+chordDiagram(adj_list_cc)
+dev.off()
+```
+
+We also create a chord diagram for the synaptic CC terms.
+We select all genes with "synapse" ancestor.
+Then we subclassify these genes.
+
+```{r}
+## transform the list to a data.frame with columns:
+## Entrez ID and GO term
+go <- data.frame(entrez = unlist(sapply(names(tmp2), function(x) 
+                                                  rep(x, length(tmp2[[x]])))),
+                 GO_IDs = unlist(tmp2), stringsAsFactors = FALSE)
+## add the Term
+go$term <- Term(go$GO_IDs)
+## add the gene name
+go$gene_name <- AnnotationDbi::select(org.Mm.eg.db, keys=go$entrez, 
+                                      column = "SYMBOL", 
+                                      keytype = "ENTREZID")[["SYMBOL"]]
+
+## We select the "synapse" terms
+synapse_terms <- c(
+  # "dopaminergic synapse", 
+                   # "excitatory synapse", 
+                   "glutamatergic synapse", 
+                   # "cholinergic synapse",
+                   # "inhibitory synapse", 
+                   "GABA-ergic synapse", 
+                   # "glycinergic synapse",  
+                   "postsynapse", "presynapse"
+                   # "neuromuscular junction"
+                   )
+
+
+## get the GO ID for each of the terms
+# cc_terms <- data.frame(term = cc_terms,id = go$GO_IDs[match(cc_terms, go$term)])
+go_searchs <- as.list(go$GO_IDs[match(synapse_terms, go$term)])
+names(go_searchs) <- synapse_terms
+  
+  
+#### Traverse the full tree to search for parent annotations
+## per gene, add list of all ancestor terms to table 
+goccanc <- as.list(GO.db::GOCCANCESTOR)
+
+get_ancestors <- Vectorize(function(go_id){
+  c(go_id, unlist(goccanc[[go_id]]))
+})
+
+go <- go %>% 
+  as_tibble() %>%
+  mutate(ancestors = get_ancestors(GO_IDs)) 
+
+## check for the different terms
+go <- go %>%
+  rowwise() %>%
+  mutate( 
+    # dopaminergic_synapse = go_searchs[["dopaminergic synapse"]] %in% ancestors, 
+          # excitatory_synapse = go_searchs[["excitatory synapse"]] %in% ancestors, 
+          glutamatergic_synapse = go_searchs[["glutamatergic synapse"]] %in% ancestors, 
+          # cholinergic_synapse = go_searchs[["cholinergic synapse"]] %in% ancestors,
+          # inhibitory_synapse = go_searchs[["inhibitory synapse"]] %in% ancestors, 
+          GABAergic_synapse = go_searchs[["GABA-ergic synapse"]] %in% ancestors, 
+          # glycinergic_synapse = go_searchs[["glycinergic synapse"]] %in% ancestors,  
+          postsynapse = go_searchs[["postsynapse"]] %in% ancestors, 
+          presynapse = go_searchs[["presynapse"]] %in% ancestors
+          # neuromuscular_junction = go_searchs[["neuromuscular junction"]] %in% ancestors
+          )
+
+
+
+## annotate direction of change
+go <- go %>% left_join(sns_6mo_de, by = c("entrez" = "entrezgene_id")) 
+
+
+## we need an adjacency list
+##   from to value
+## 1    a  A     1
+## 2    b  B     2
+## 3    c  C     3
+
+## in our case 
+## direction  location  value
+golong <- gather(go, location, is_inside, 6:(length(synapse_terms)+5))
+
+adj_list_cc <- golong %>% group_by(direction, location) %>% summarize(value = sum(is_inside))
+adj_list_cc
+
+  
+## Plotting with circlize
+grid.col = c(up = "#882255", down = "#117733")
+
+pdf(here("results/chord_diagram_synapse.pdf"))
+circos.clear()
+circos.par(canvas.xlim = c(-1.2,0.8))
+chordDiagram(adj_list_cc, annotationTrack = "grid", 
+    preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(adj_list_cc))))), 
+    grid.col = grid.col)
+circos.track(track.index = 1, panel.fun = function(x, y) {
+    xlim = get.cell.meta.data("xlim")
+    xplot = get.cell.meta.data("xplot")
+    ylim = get.cell.meta.data("ylim")
+    sector.name = get.cell.meta.data("sector.index")
+
+    if(abs(xplot[2] - xplot[1]) < 30) {
+        circos.text(mean(xlim), ylim[1], sector.name, facing = "clockwise",
+            niceFacing = TRUE, adj = c(0, 0.5))
+    } else {
+        circos.text(mean(xlim), ylim[1], sector.name, facing = "inside", 
+            niceFacing = TRUE, adj = c(0.5, 0))
+    }
+}, bg.border = NA)
+
+# chordDiagram(adj_list_cc, grid.col = grid.col)
+dev.off()
+```
+
+
+
+
+
+# Heatmap
+
+Heatmap of the DE genes in SNS 6 month comparison. 
+We use the logCPM values of each sample and compute a Z-score.
+
+Then we use one gene selection and plot all samples (both homogenate and SNS together).This should show that there are no changes in homogenate, but many in SNS.
+
+
+```{r}
+## Top 1000 genes with lowest FDR value at 6 months in SNS KI vs. WT
+comp[4]
+sns_6m <- rowData(sg)[[comp[4]]] %>% as.data.frame %>% 
+  rownames_to_column("rownames") %>%
+  arrange(FDR) %>% dplyr::filter(FDR <= 0.05) 
+
+# sns_6m_top <- sns_6m %>% pull(rownames)
+# ## split the rows based on UP and DOWN regulated genes
+de_direction <- sns_6m %>% pull(logFC)
+de_direction <- ifelse(de_direction > 0, "up", "down")
+
+sns_6m <- sns_6m %>% dplyr::select(rownames, logFC) %>% 
+  mutate(DE = ifelse(logFC > 0, "up", "down"))
+
+## The logCPM values of the SNS samples and the top 1000 genes
+sns_metadata <-  metadata %>% as.data.frame %>%
+  dplyr::filter(fraction == "SNS")
+sns_ext_metadata <- ext_metadata %>% dplyr::filter(fraction == "SNS")
+
+
+## Top 1000 genes with lowest FDR value at 6 months in homogenate KI vs. WT
+comp[3]
+total_metadata <-  metadata %>% as.data.frame %>%
+  dplyr::filter(fraction == "H")
+total_ext_metadata <- ext_metadata %>% dplyr::filter(fraction == "H")
+
+total_samples <- metadata %>% as.data.frame %>%
+  dplyr::filter(fraction == "H") %>%
+  pull(names)
+
+## nuclear samples
+nuc_samples <- metadata %>% as.data.frame %>%
+dplyr::filter(fraction == "N") %>%
+pull(names)
+
+nuc_metadata <-  metadata %>% as.data.frame %>%
+dplyr::filter(fraction == "N")
+nuc_ext_metadata <- ext_metadata %>% dplyr::filter(fraction == "N")
+```
+
+
+Custom heatmap function for our RNA-seq data, where you only need to specify the matrix and the legend name.
+
+```{r}
+custom_heatmap <- function(mat, mat_type, mat_title, metadata, outfile){
+  
+  col_fun = colorRamp2(c(quantile(mat, 0.01), 0, 
+                         quantile(mat, 0.99)), 
+                       c("#117733", "white", "#882255"))
+  
+  gender_col <- c("Male" = "#332288", "Female" = "#CC6677")
+  batch_col <- c("batch1" = "#88CCEE", "batch2" = "#DDCC77", 
+                 "batch3" = "#44AA99", "batch4" = "#7A8FFF",
+                 "batch6" = "#F8F099", "batch7" = "#5FF342")
+  fraction_col <- c("total" = "#5AC9A8", "SNS" = "#4D061E")
+  genotype_col <- c("WT" = "#AAC957", "KI" = "#177BCB")
+  age_col <- c("1 month" = "#CA7339", "6 months" = "#951834")
+  
+  ha <- HeatmapAnnotation(gender = metadata$gender, 
+                batch = metadata$batch,
+                fraction = metadata$fraction,
+                genotype = metadata$genotype,
+                age = metadata$age,
+                col = list(gender = gender_col, batch = batch_col, 
+                           fraction = fraction_col, genotype = genotype_col,
+                           age = age_col),
+                annotation_name_side = "left")
+
+  hm <- Heatmap(mat, name = mat_type, 
+                column_title = mat_title,
+                col = col_fun, 
+                column_split = data.frame(
+                  factor(metadata$fraction, levels = c("SNS", "total")),
+                  factor(metadata$age, levels = unique(metadata$age)), 
+                  factor(metadata$genotype, 
+                         levels = unique(metadata$genotype))),
+                row_split = de_direction, top_annotation = ha,
+                show_column_names = FALSE, cluster_column_slices = FALSE,
+                cluster_rows = FALSE, show_row_dend = FALSE,
+                column_dend_height = unit(0.5, "cm"), row_title_rot = 0,
+                row_gap = unit(2, "mm"), 
+                column_gap = unit(c(1, 4, 1, 4, 1, 4, 1), "mm"))
+  
+  pdf(file = here("results/heatmap", outfile), width = 9, height = 7)
+  draw(hm,merge_legend = TRUE, ht_gap = unit(0.5, "cm"))
+  dev.off()
+  draw(hm,merge_legend = TRUE, ht_gap = unit(0.5, "cm"))
+}
+```
+
+## Z-score per comparison
+We compute the z-scores per comparison (KI and WT samples of one origin and time point) and we correct for possible batch effects of gender and batch.
+
+```{r}
+# set global variable to use a faster clustering method
+ht_opt$fast_hclust = TRUE
+## globally set the size of the column annotation bar
+ht_opt$simple_anno_size <- unit(4, "mm")
+
+sns_total_ext_metadata <- ext_metadata %>% dplyr::filter(fraction != "N")
+
+mat <- sns_6m %>% left_join(logcpms %>% as.data.frame %>%
+                              rownames_to_column("rownames") %>%
+                              dplyr::select(-contains("_WT_N"), rownames)) %>% 
+  dplyr::select(-c(rownames, logFC, DE))
+
+mat_corrected <- limma::removeBatchEffect(
+  mat, sns_total_ext_metadata$gender, batch2 = sns_total_ext_metadata$batch,
+  design = model.matrix(~ 0 + group, data = sns_total_ext_metadata))
+
+# compute Z-score per comparison
+ll <- lapply(split(1:ncol(mat_corrected), 
+                   paste(sns_total_ext_metadata$age, 
+                         sns_total_ext_metadata$fraction)), FUN=function(x){
+  t(scale(t(mat_corrected[,x])))
+})
+mat_batch_corrected_scaled <- do.call(cbind, ll)[,colnames(mat)]
+
+## rename the metadata levels for the legend
+sns_total_ext_metadata$gender <- plyr::revalue(sns_total_ext_metadata$gender,
+                                               c("f"="Female", "m"="Male"))
+sns_total_ext_metadata$fraction <- plyr::revalue(sns_total_ext_metadata$fraction, 
+                                                 c("H"="total"))
+sns_total_ext_metadata$age <- plyr::revalue(sns_total_ext_metadata$age, 
+                                            c("1_mo" = "1 month", 
+                                              "6_mo" = "6 months"))
+
+custom_heatmap(mat_batch_corrected_scaled, "z-score", 
+               "DE genes in SNS 6 month KI vs. SNS 6 month WT", 
+               metadata = sns_total_ext_metadata, 
+               outfile = "sns_DE_heatmap_Zscore_removeBatchEffect.pdf")
+```
+
+## per-sample log2FC 
+
+There is some clustering of the samples with the same gender, but is is not a very strong effect. It's only visible in the SNS 6 month comparison, maybe because there, we have 50% male and 50 female. 
+
+We plot the per-sample logFC to the mean of the respective WT if the same fraction and age:
+sample logCPM / mean(control logCPMs)
+We cannot correct for batch effects, because batch 4 is confounded with the homogenate, 1 month, WT samples!
+
+```{r}
+by <- paste(sns_total_ext_metadata$fraction, sns_total_ext_metadata$age)
+controls <- which(sns_total_ext_metadata$genotype == "WT")
+
+## compute the log2FC (of the logCPMs) based on the time, fraction and gender
+i <- split(1:ncol(mat_corrected),by)
+lfc <- do.call(cbind, lapply(i, FUN = function(x){
+    c2 <- intersect(x, controls)
+    mat_corrected[, x, drop = FALSE] - 
+      rowMeans(mat_corrected[, c2, drop = FALSE], na.rm = TRUE)
+}))
+lfc <- lfc[, colnames(mat_corrected)]
+
+
+custom_heatmap(lfc, "log2FC", 
+               "DE genes in SNS 6 month KI vs. SNS 6 month WT", 
+               metadata = sns_total_ext_metadata, 
+               outfile = "sns_DE_heatmap_log2FC_to_mean_control_logCPM_removeBatchEffect.pdf")
+```
+
+
+## Batch corrected logCPM values
+
+We plot the batch corrected logCPM values.
+
+```{r}
+custom_heatmap(mat_corrected, "logCPM", 
+               "DE genes in SNS 6 month KI vs. SNS 6 month WT", 
+               metadata = sns_total_ext_metadata, 
+               outfile = "sns_DE_heatmap_logCPM_removeBatchEffect.pdf")
+```
+
+## Uncorrected logCPM values
+
+```{r}
+custom_heatmap(as.matrix(mat), "logCPM", 
+               "DE genes in SNS 6 month KI vs. SNS 6 month WT", 
+               metadata = sns_total_ext_metadata, 
+               outfile = "sns_DE_heatmap_logCPM.pdf")
+```
+
+## Uncorrected z-score (no batch correction)
+
+```{r}
+# compute Z-score per comparison
+ll <- lapply(split(1:ncol(mat), 
+                   paste(sns_total_ext_metadata$age, 
+                         sns_total_ext_metadata$fraction)), FUN=function(x){
+  t(scale(t(mat[,x])))
+})
+
+mat_scaled <- do.call(cbind, ll)[,colnames(mat)]
+
+custom_heatmap(mat_scaled, "z-score", 
+               "DE genes in SNS 6 month KI vs. SNS 6 month WT", 
+               metadata = sns_total_ext_metadata, 
+               outfile = "sns_DE_heatmap_Zscore.pdf")
+```
+
+
+## Uncorrected log2FC (no batch correction)
+
+```{r}
+by <- paste(sns_total_ext_metadata$fraction, sns_total_ext_metadata$age)
+controls <- which(sns_total_ext_metadata$genotype == "WT")
+
+##convert mat to matrix
+mat1 <- as.matrix(mat) 
+
+## compute the log2FC (of the logCPMs) based on the time, fraction and gender
+i <- split(1:ncol(mat1), by)
+lfc <- do.call(cbind, lapply(i, FUN = function(x){
+    c2 <- intersect(x, controls)
+    mat1[, x, drop = FALSE] - 
+      rowMeans(mat1[, c2, drop = FALSE], na.rm = TRUE)
+}))
+lfc <- lfc[, colnames(mat1)]
+
+
+custom_heatmap(lfc, "log2FC", 
+               "DE genes in SNS 6 month KI vs. SNS 6 month WT", 
+               metadata = sns_total_ext_metadata, 
+               outfile = "sns_DE_heatmap_log2FC_to_mean_control_logCPM.pdf")
+```
+
+
+I save the logCPM matrix and the metadata for Pierre-Luc. He wanted to help me with correcting for the batch effects before plotting the heatmap.
+```{r, eval = FALSE}
+saveRDS(mat, here("Rmd", "rds", "logCPMs.rds")) 
+saveRDS(sns_total_metadata, here("Rmd", "rds", "metadata.rds")) 
+```
+
+
+
+
+# GABA transcript expression
+
+The most expressed GABRA1 transcript determines ... (what is the paper and its claim?)
+We want to know if the transcript with the highest expression is the same in all samples or if the main transcript changes upon FUS KI.
+
+```{r}
+st <- se$st
+
+assay(st, "counts") %>% head
+
+gabatr <- assay(st[rowData(st)$symbol == "Gabra1"], "abundance")
+
+
+## transform to long format for plotting
+gabatr_long <- gabatr %>% as.data.frame %>% 
+  rownames_to_column("transcript") %>%
+  tidyr::gather(key = "sample", "TPM", -transcript) %>% 
+  mutate(transcript = as.factor(transcript))
+gabatr_long$genotype <- metadata$genotype[match(gabatr_long$sample, metadata$names)]
+
+tmp <- metadata[match(gabatr_long$sample, metadata$names), c("fraction", "age")]
+gabatr_long$preparation.age <- factor(paste0(tmp$fraction, ".", tmp$age), levels = c("H.1_mo", "H.6_mo", "SNS.1_mo", "SNS.6_mo", "N.1_mo"))
+  
+
+p <- ggplot(gabatr_long, aes(x = transcript, y = TPM, color = preparation.age, shape = genotype)) + 
+  geom_jitter(size = 3, alpha = 0.8, width = 0.3) + 
+  theme_bw(base_size = 20) + 
+  scale_color_manual(values = c(brewer.pal(5, name = "Paired"))) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+p
+ggsave(here("results/Gabra1_transcript_TPM.pdf"))
+
+p <- ggplot(gabatr_long, aes(x = preparation.age, y = TPM, color = transcript, shape = genotype)) + 
+  geom_jitter(size = 3, alpha = 0.8, width = 0.3) + 
+  theme_bw(base_size = 20) + 
+  # scale_color_manual(values = c(brewer.pal(5, name = "Paired"))) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+p
+ggsave(here("results/Gabra1_transcript_TPM_1.pdf"))
+
+
+## filter out the lowly expressed transcripts
+expr_tr <- gabatr_long %>% 
+  group_by(transcript) %>% summarize(mean_TPM = mean(TPM)) %>%
+  dplyr::filter(mean_TPM > 1) %>% pull(transcript)
+
+gabatr_filt <- gabatr_long %>% dplyr::filter(transcript %in% expr_tr)
+
+p <- ggplot(gabatr_filt, aes(x = transcript, y = TPM, color = preparation.age, shape = genotype)) + 
+  geom_jitter(size = 3, alpha = 0.8, width = 0.3) + 
+  theme_bw(base_size = 20) + 
+  scale_color_manual(values = c(brewer.pal(5, name = "Paired"))) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+p
+ggsave(here("results/Gabra1_transcript_TPM_filtered.pdf"))
+
+p <- ggplot(gabatr_filt, aes(x = preparation.age, y = TPM, color = transcript, shape = genotype)) + 
+  geom_jitter(size = 3, alpha = 0.8, width = 0.3) + 
+  theme_bw(base_size = 20) + 
+  # scale_color_manual(values = c(brewer.pal(5, name = "Paired"))) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+p
+ggsave(here("results/Gabra1_transcript_TPM_filtered_1.pdf"))
+```
+
+It seems that there is no big difference in transcript expression between the KI and WT samples at any time point. One transcript increases in expression in the homogenate samples at 6 months compared to 1 month, but the SNS samples do not change much in expression.
+
+FUS binds GABRA1 at the 3' UTR. There are two transripts in the Ensembl annotation that share this 3' UTR: ENSMUST00000020707 and ENSMUST00000205546. All other transcript do not have the long 3' UTR.
+ENSMUST00000205546. is the transcript with the highest expression and ENSMUST00000020707 has the second highest expression.
+
+
+
+If we want a measure that can be compared across samples, we could compute the expression ratio of the different transcripts within one sample. E.g. comparing the ratio of tr1 to tr2 in all samples. If the ratio is different, it tells us if we observe more or less of tr1 compared to tr2, so it answeres the question if the major transcript changes from sample to sample.
+```{r}
+## compute the ratio of two transcripts per sample and plot the ratios.
+gabatr_logFC <- gabatr_filt %>% dplyr::group_by(sample, genotype, preparation.age) %>% 
+  summarize(log2FC_tr1_2 = log2(TPM[transcript == "ENSMUST00000205546"]) - log2(TPM[transcript == "ENSMUST00000020707"]))
+
+
+p <- ggplot(gabatr_logFC, aes(x = preparation.age, y = log2FC_tr1_2, 
+                              color = genotype))+
+                              # color = preparation.age, shape = genotype)) + 
+  geom_jitter(size = 3, alpha = 0.8, width = 0.3) +
+  theme_bw(base_size = 20) + 
+  # scale_color_manual(values = c(brewer.pal(5, name = "Paired"))) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+p
+ggsave(here("results/Gabra1_log2FC_transcript1_2.pdf"))
+```
+
+
+
+
+
+Maybe we should use cpm values instead of TPM? TPMs are normallized for the transcript length, so you can compare different transcripts within one sample, but you should not compare transcritps across sample. CPMs, however, are normalized for the library size, but not for transcript length. So we can use cpms to compare across samples, but not to compare different transcripts within one sample (because cpms are not length normalized).
+
+
+Or we could normalize the raw counts with TMM and then compute cpm values. If we compare the same sets of transcripts between samples, their length does not matter as is affects all samples in the same way.
+
+Or we could use DRIMseq to check for DTU between specific groups of samples (e.g. 6 months WT SNS vs. 6 month KI SNS). If Gabra1 is among these genes we can find out which transcripts are affected.
+
+
+TODO: what is the transcript mentioned in pierres paper?
+
+
+take the transcript counts and plot them for all GABRA1 transcripts (get all transcript from rowData(st)
+TODO: do we need to normalize for the different transcript lengths? or can we simply compute CPM values for each transcript?
+--> use TPM values 
+from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6178912/
+Salmon estimates the relative abundance of each annotated transcript for each sample in units of transcripts-per-million (TPM); the estimated TPM values should be proportional to the abundance of the transcripts in the population of cells that were assayed.
+
+
+Salmon abundance = TPM

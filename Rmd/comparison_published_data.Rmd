@@ -1,0 +1,496 @@
+---
+title: "SNS RNA-seq comparison with published data"
+author: "Katharina Hembach"
+date: "10/21/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+suppressPackageStartupMessages({
+  library(here)
+  library(ggplot2)
+  library(data.table)
+  library(dplyr)
+  library(RColorBrewer)
+  library(ComplexHeatmap)
+  library(stringr)
+  library(VennDiagram)
+  library(biomaRt)
+  library(rtracklayer)
+  library(limma)
+  library(SummarizedExperiment)
+})
+```
+
+
+## Introduction
+
+We want to compare our polyA RNA-seq with published SNS RNA-seq, especially the synaptic transcriptome in Noya et al. Science 2019.
+
+We load our analysis results: the DE genes (RNA-seq) and FUS targets (CLIP-seq).
+```{r}
+clip_dir <- "/home/Shared/data/seq/sonu_CLIPseq/clip_March2018/"
+fus_targets <- read.table(file.path(clip_dir, "analysis/deduplicated/MA_plot_selection/top_peaks_loess_adjM_pValue_1e-05_gene_anno_manually_filtered_cluster_location_classified.txt"), header = TRUE)
+
+up_targets <- read.table(here("results/SNS.KI.6_mo_vs_SNS.WT.6_mo_up_FUS_targets.txt"), header = TRUE)
+down_targets <- read.table(here("results/SNS.KI.6_mo_vs_SNS.WT.6_mo_down_FUS_targets.txt"), header = TRUE)
+
+up <- read.table(here("results/SNS.KI.6_mo_vs_SNS.WT.6_mo_up.txt"), header = TRUE)
+down <- read.table(here("results/SNS.KI.6_mo_vs_SNS.WT.6_mo_down.txt"), header = TRUE)
+
+gtf_file <- "/home/Shared/data/annotation/Mouse/Ensembl_GRCm38.90/gtf/Mus_musculus.GRCm38.90.gtf"
+```
+
+
+We load the Supplementary table 1 from Noya et al. Science 2019 (I copy-pasted le the tabto a text document for easier import into R). They define the "expressed" transcripts as: 
+
+"For downstream analysis, the mRNA features were filtered according to normalized (log mean) feature counts, which represent aggregated raw counts of mapped reads at the gene level (RSEM). We determined a threshold for minimum gene expression on the basis of the assumption that a transcript with >10 counts in two of three replicates is expressed (linear signal thresh- old of 10)".
+
+I am not sure how they normalized the data. Did they normalize such that the mean of all replicates is identical (on the log scale?)?
+
+I assume that the expressed transcripts are determined from the synaptic samples. But what about the number of expressed transcripts in the total brain? Their analysis pipeline is not explained well...
+
+```{r}
+noya <- fread(here("Noya_et_al_synaptic_transcriptome/sup_table_1.txt"))
+## Number of expressed genes:
+nrow(noya)
+```
+
+
+
+## Comparison
+
+We use the same filters for our dataset so that we can compare the numbers of expressed and synapse specific genes between the datsets.
+
+```{r}
+ext_metadata <- read.table(here("extended_metadata.txt"), header = TRUE, 
+                           stringsAsFactors = FALSE)
+
+se <- here("output/outputR/edgeR_dge.rds" )
+se <- readRDS(se)
+sg <- se$sg
+metadata <- colData(sg)
+```
+
+How many genes have more than 10 counts in two thirds of the replicates?
+```{r}
+cnts <- assay(sg, "counts")
+
+## Number of genes with > 10 counts 
+cnts <- cnts > 10
+
+## keep all genes where sum(x>10) >= #replicates * 2/3
+group_expr <- lapply(unique(metadata$group), function(x) {
+   dat <- cnts  %>% as.data.frame %>%
+    dplyr::select(metadata[metadata$group == x, "names"])
+  min_rep <- ncol(dat) * 2/3  ## minimum required number of replicates with > 10 counts
+  rownames(dat)[dat %>% rowSums(.) >= min_rep ]
+})
+names(group_expr) <- unique(metadata$group)
+lapply(group_expr, length)
+```
+
+We plot the number of expressed genes per group:
+```{r}
+group_cnts <- data.frame(expressed_genes = sapply(group_expr, length)) %>%
+  tibble::rownames_to_column(var = "group") %>% 
+  mutate(group = as.factor(group)) 
+
+ggplot(group_cnts, aes(x = group, y = expressed_genes, col = group)) + 
+    geom_point(size = 2.5) +
+    theme_bw(base_size = 14) +
+    theme(axis.text.x = element_text(angle = 90)) +
+    scale_color_manual(values = c(brewer.pal(8, name = "Dark2"), "black")) + 
+    ggtitle("genes with > 10 reads in 2/3 of the replicates")  +
+    ylab("Number of expressed genes") +
+    theme(legend.position = "none")
+
+ggsave(filename = here("results/comparison_Noya/number_expressed_genes.pdf"), width = 6, height = 5)
+```
+
+Keep in mind that they performed some sort of normalisation and we are using the raw counts here. This might explain why we detect a few more genes...
+
+
+## Comparison of the expressed genes
+
+How many genes are expressed in out data sets as well as the Noya dataset? What is the overlap between the different groups?
+
+```{r}
+sets <- lapply(group_expr, function(x) 
+  str_split(string = x, pattern = "__", simplify = TRUE)[,1])
+sets[["Noya_expressed"]] <- noya$feature_ID
+comb_mat <- make_comb_mat(sets, mode = "distinct")
+
+## 1 month WT
+sets_1mo <- sets[c("H.WT.1_mo", "SNS.WT.1_mo", "Noya_expressed")]
+comb_mat_1mo <- make_comb_mat(sets_1mo, mode = "distinct")
+a <- UpSet(comb_mat_1mo,
+      comb_col = c("#117733", "#882255", "#332288")[comb_degree(comb_mat_1mo)], 
+      pt_size = unit(5, "mm"))
+a
+pdf(here("results/comparison_Noya/expressed_genes_comparison_UpSet_1mo_WT.pdf"), width = 6, height = 5)
+a; a <- dev.off()
+
+## 1 month KI
+sets_1mo_KI <- sets[c("H.KI.1_mo", "SNS.KI.1_mo", "Noya_expressed")]
+comb_mat_1mo_KI <- make_comb_mat(sets_1mo_KI, mode = "distinct")
+a <- UpSet(comb_mat_1mo_KI,
+      comb_col = c("#117733", "#882255", "#332288")[comb_degree(comb_mat_1mo_KI)], 
+      pt_size = unit(5, "mm"))
+a
+pdf( here("results/comparison_Noya/expressed_genes_comparison_UpSet_1mo_KI.pdf"), width = 6, height = 5)
+a; a <- dev.off()
+
+## 6 months WT
+sets_6mo <- sets[c("H.WT.6_mo", "SNS.WT.6_mo", "Noya_expressed")]
+comb_mat_6mo <- make_comb_mat(sets_6mo, mode = "distinct")
+a <- UpSet(comb_mat_6mo,
+      comb_col = c("#117733", "#882255", "#332288")[comb_degree(comb_mat_6mo)], 
+      pt_size = unit(5, "mm"))
+a
+pdf( here("results/comparison_Noya/expressed_genes_comparison_UpSet_6mo_WT.pdf"), width = 6, height = 5)
+a; a <- dev.off()
+
+## 6 months KI
+sets_6mo_KI <- sets[c("H.KI.6_mo", "SNS.KI.6_mo", "Noya_expressed")]
+comb_mat_6mo_KI <- make_comb_mat(sets_6mo_KI, mode = "distinct")
+a <- UpSet(comb_mat_6mo_KI,
+      comb_col = c("#117733", "#882255", "#332288")[comb_degree(comb_mat_6mo_KI)], 
+      pt_size = unit(5, "mm"))
+a
+pdf( here("results/comparison_Noya/expressed_genes_comparison_UpSet_6mo_KI.pdf"), width = 6, height = 5)
+a; a <- dev.off()
+
+## WT
+sets_WT <- sets[c("H.WT.1_mo", "SNS.WT.1_mo", "H.WT.6_mo", "SNS.WT.6_mo", "Noya_expressed")]
+comb_mat_WT <- make_comb_mat(sets_WT, mode = "distinct")
+a <- UpSet(comb_mat_WT,
+      comb_col = c("brown", "#117733", "#882255", "#332288")[comb_degree(comb_mat_WT)], 
+      pt_size = unit(5, "mm"))
+a
+pdf( here("results/comparison_Noya/expressed_genes_comparison_UpSet_WT.pdf"), width = 7, height = 5)
+a; a <- dev.off()
+
+## KI
+sets_KI <- sets[c("H.KI.1_mo", "SNS.KI.1_mo", "H.KI.6_mo", "SNS.KI.6_mo", "Noya_expressed")]
+comb_mat_KI <- make_comb_mat(sets_KI, mode = "distinct")
+a <- UpSet(comb_mat_KI,
+      comb_col = c("brown", "#117733", "#882255", "#332288")[comb_degree(comb_mat_KI)], 
+      pt_size = unit(5, "mm"))
+a
+pdf( here("results/comparison_Noya/expressed_genes_comparison_UpSet_KI.pdf"), width = 7, height = 5)
+a;a <- dev.off()
+```
+
+
+## Comparison with the enriched RNAs
+
+Noya et al report 3104 enriched RNAs. We want to check how many of them also have a logFC > 1.5 in our data.
+
+They describe the filtering as follows:
+
+"The threshold to consider a gene enriched in the synapse was a fold change (of the synaptic sam- ples versus the whole forebrain samples) >1.5 in one"
+
+I assume that they used the logFC instead of the raw FC.
+
+
+```{r}
+noya$synaptic_enriched_3104[noya$synaptic_enriched_3104 == ""] <- "-"
+table(noya$synaptic_enriched_3104)
+```
+
+We have the precomputed log2 FC of each contrast.
+
+```{r}
+## all comparison:
+comp <- names(rowData(sg))[7:18]
+
+## 1 month WT SNS vs. WT homogenate
+comp[9]
+sns_wt_1mo <- rowData(sg)[[comp[9]]]
+
+sns_wt_1mo_expr <- sns_wt_1mo %>% as.data.frame %>%
+  dplyr::filter(logFC > 1.5)
+nrow(sns_wt_1mo_expr)
+
+
+sets <- list(WT_1mo_SNS_enriched = sns_wt_1mo_expr$gene_id, 
+             Noya_enriched = noya$feature_ID[noya$synaptic_enriched_3104=="+"])
+comb_mat <- make_comb_mat(sets, mode = "distinct")
+
+## 1 month WT
+a <- UpSet(comb_mat, set_order = c("Noya_enriched", "WT_1mo_SNS_enriched"),
+      comb_col = c("#117733", "#882255", "#332288")[comb_degree(comb_mat)], 
+      pt_size = unit(5, "mm"))
+a
+pdf(here("results/comparison_Noya/enriched_genes_comparison_UpSet_1mo_WT_logFC.pdf"), width = 6, height = 5)
+a; a <- dev.off()
+```
+
+
+What if we use the FC instead of the log2FC for filtering? log2(1.5) = `r log2(1.5)`
+
+```{r}
+sns_wt_1mo_expr <- sns_wt_1mo %>% as.data.frame %>%
+  dplyr::filter(logFC > log2(1.5))
+nrow(sns_wt_1mo_expr)
+
+sets <- list(WT_1mo_SNS_enriched = sns_wt_1mo_expr$gene_id, 
+             Noya_enriched = noya$feature_ID[noya$synaptic_enriched_3104=="+"])
+comb_mat <- make_comb_mat(sets, mode = "distinct")
+
+## 1 month WT
+a <- UpSet(comb_mat, set_order = c("Noya_enriched", "WT_1mo_SNS_enriched"),
+      comb_col = c("#117733", "#882255", "#332288")[comb_degree(comb_mat)], 
+      pt_size = unit(5, "mm"))
+a
+pdf(here("results/comparison_Noya/enriched_genes_comparison_UpSet_1mo_WT.pdf"), width = 6, height = 5)
+a; a <- dev.off()
+```
+
+Yes, I think they used the raw FC instead of the logFC for filtering!
+
+
+
+## Venn diagram for paper
+
+Venn diagram of the expressed genes in WT SNS 1 month vs. the expressed genes from Noya et al.
+```{r}
+## suppress the log file
+futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
+
+venn.diagram(
+  x = list(sets_1mo[["SNS.WT.1_mo"]], sets_1mo[["Noya_expressed"]]),
+  category.names = c("SNS: WT 1mo" , "Noya expressed"),
+  filename = here("results/comparison_Noya/SNS_WT_1_mo_vs_Noya_expressed_Venn.png"), 
+  resolution = 300, imagtype = "png",
+  # height = 480, width = 480, 
+  lwd = 7, cex = 3.5, cat.cex = 3.5, cat.default.pos = "outer", 
+  fontfamily = "sans",
+  col = c("#882255", "#332288"),
+  fill = c(alpha("#882255", 0.6), alpha("#332288", 0.6)),
+  cat.fontfamily = "sans",
+  cat.col = c("#882255", "#332288"), cat.dist = c(0.07), cat.pos = c(-40, 30),
+  margin = 0.03,
+  ext.pos = c(270, 90), ext.dist = c(-0.13, -0.14), ext.line.lwd = 4, 
+  ext.length = 0.4, ext.percent = 0.2
+)
+
+## save as pdf for the paper
+pdf(here("results/comparison_Noya/SNS_WT_1_mo_vs_Noya_expressed_Venn.pdf"))
+grid.draw(venn.diagram(
+  x = list(sets_1mo[["SNS.WT.1_mo"]], sets_1mo[["Noya_expressed"]]),
+  category.names = c("SNS: WT 1mo" , "Noya expressed"),
+  filename = NULL,
+  lwd = 8, cex = 3.5, cat.cex = 3.5, cat.default.pos = "outer", 
+  fontfamily = "sans",
+  col = c("#882255", "#332288"),
+  fill = c(alpha("#882255", 0.6), alpha("#332288", 0.6)),
+  cat.fontfamily = "sans",
+  cat.col = c("#882255", "#332288"), cat.dist = c(0.075), cat.pos = c(-30, 155),
+  margin = 0.055,
+  ext.pos = c(270, 90), ext.dist = c(-0.10, -0.12), ext.line.lwd = 4, 
+  ext.length = 0.3, ext.percent = 0.2
+))
+dev.off()
+
+## the enriched genes
+venn.diagram(
+  x = list(sns_wt_1mo_expr$gene_id, 
+           noya$feature_ID[noya$synaptic_enriched_3104=="+"]),
+  category.names = c("SNS WT 1mo enriched" , "Noya enriched"),
+  filename = here("results/comparison_Noya/SNS_WT_1_mo_enriched_vs_Noya_enriched_Venn.png"), 
+  resolution = 300, imagtype = "png",
+  # height = 480, width = 480, 
+  lwd = 7, cex = 3.5, cat.cex = 3.5, cat.default.pos = "outer", 
+  fontfamily = "sans",
+  col = c("#882255", "#332288"),
+  fill = c(alpha("#882255", 0.6), alpha("#332288", 0.6)),
+  cat.fontfamily = "sans",
+  cat.col = c("#882255", "#332288"), cat.dist = c(0.04, 0.04), cat.pos = c(-5, 170),
+  margin = 0.01
+)
+
+
+## alternative plot with ggVennDiagram ? 
+# library(ggVennDiagram)
+```
+
+
+The most interesting comparison is WT SNS 1 month vs. 3104 enriched genes from Noya et al. vs. FUS target genes from CLIP-seq
+
+```{r}
+venn.diagram(
+  x = list(sets_1mo[["SNS.WT.1_mo"]], 
+           noya$feature_ID[noya$synaptic_enriched_3104=="+"], 
+           fus_targets$gene_id),
+  category.names = c("SNS: WT 1mo", "Noya enriched", "FUS targets"),
+  filename = here("results/comparison_Noya/SNS_WT_1_mo_vs_Noya_enriched_vs_FUS_targets_Venn.png"), 
+  resolution = 300, imagtype = "png",
+  # height = 480, width = 480, 
+  lwd = 7, cex = 3.5, cat.cex = 3.5, cat.default.pos = "outer", 
+  fontfamily = "sans",
+  col = c("#882255", "#332288", "#117733"),
+  fill = c(alpha("#882255", 0.6), alpha("#332288", 0.6), alpha("#117733", 0.6)),
+  cat.fontfamily = "sans",
+  cat.col = c("#882255", "#332288", "#117733"),
+  cat.dist = c(0.07, 0.01, 0.07), cat.pos = c(190, 160, 0)
+)
+
+venn.diagram(
+  x = list(sns_wt_1mo_expr$gene_id, 
+           noya$feature_ID[noya$synaptic_enriched_3104=="+"], 
+           fus_targets$gene_id),
+  category.names = c("SNS WT 1mo enriched", "Noya enriched", "FUS targets"),
+  filename = here("results/comparison_Noya/SNS_WT_1_mo_enriched_vs_Noya_enriched_vs_FUS_targets_Venn.png"), 
+  resolution = 300, imagtype = "png",
+  # height = 480, width = 480, 
+  lwd = 7, cex = 3.5, cat.cex = 3.3, cat.default.pos = "outer", 
+  fontfamily = "sans",
+  col = c("#882255", "#332288", "#117733"),
+  fill = c(alpha("#882255", 0.6), alpha("#332288", 0.6), alpha("#117733", 0.6)),
+  cat.fontfamily = "sans",
+  cat.col = c("#882255", "#332288", "#117733"),
+  cat.dist = c(0.05, 0.06, 0.04), cat.pos = c(-15, 25, 180),
+  rotation = 1,
+  margin = 0.04,
+)
+```
+
+## GO analysis 
+
+We perform an ORA analysis of the genes unique to the list of enriched genes from Noya et al. and the enriched genes from SNS WT 1 month or the overlap of the two lists.
+
+As background, we use the list of genes that are expressed in SNS WT 1 month or Noya et al. (>= 10 reads in 2/3 of all replicates).
+
+
+Or we could use the list of all genes that are expressed in either of the two sets as background. Then we would have the same background for all comparisons.
+
+```{r}
+# genes expressed in at least one of the two lists
+expressed <- unique(c(sets_1mo[["SNS.WT.1_mo"]], sets_1mo[["Noya_expressed"]]))
+
+## enriched
+sns_unique <- sns_wt_1mo_expr$gene_id
+noya_unique <- noya$feature_ID[noya$synaptic_enriched_3104=="+"]
+## genes in both lists
+sns_noya <- sns_unique[sns_unique %in% noya_unique]
+## genes in only one of the two lists
+sns_unique <- sns_unique[!sns_unique %in% sns_noya]
+noya_unique <- noya_unique[!noya_unique %in% sns_noya]
+```
+
+We need to convert the Ensembl IDs to Entrez IDs
+```{r}
+## convert to Entrez IDs
+ensembl <- useMart("ensembl")
+ensembl <- useDataset("mmusculus_gene_ensembl", mart = ensembl)
+
+if (file.exists(here("Rmd", "rds", "sns_noya_bg_entrez.rds"))) {
+  bg_expressed <- readRDS(here("Rmd", "rds", "sns_noya_bg_entrez.rds"))  
+} else{
+  ## convert to Entrez IDs
+  bg_expressed <- getBM(attributes = c("ensembl_gene_id","entrezgene_id"), 
+                         values = expressed, mart = ensembl )
+  bg_expressed <- bg_expressed[bg_expressed$ensembl_gene_id %in% expressed, ]
+  saveRDS(bg_expressed, here("Rmd", "rds", "sns_noya_bg_entrez.rds")) 
+}
+
+
+sns_entrez <- getBM(attributes = c("ensembl_gene_id","entrezgene_id"), 
+                       values = sns_unique, mart = ensembl )
+sns_entrez <- sns_entrez[sns_entrez$ensembl_gene_id %in% sns_unique, ]
+
+noya_entrez <- getBM(attributes = c("ensembl_gene_id","entrezgene_id"), 
+                       values = noya_unique, mart = ensembl )
+noya_entrez <- noya_entrez[noya_entrez$ensembl_gene_id %in% noya_unique, ]
+
+sns_noya_entrez <- getBM(attributes = c("ensembl_gene_id","entrezgene_id"), 
+                       values = sns_noya, mart = ensembl )
+sns_noya_entrez <- sns_noya_entrez[sns_noya_entrez$ensembl_gene_id %in% sns_noya, ]
+```
+
+We adjust the genes for their length, 
+```{r}
+gtf <- import(gtf_file)
+
+## Match gene length to bg list
+genes <- gtf[gtf$type == "gene"]
+m <- match(bg_expressed$ensembl_gene_id, genes$gene_id)
+gene_length <- width(genes)[m]
+```
+
+ORA analysis
+
+```{r}
+## GO analysis with goana using gene length as covariate
+goana_sns <- goana(de = unique(sns_entrez$entrezgene_id), species = "Mm", 
+                   universe = bg_expressed$entrezgene_id, covariate = gene_length)
+goana_sns <- goana_sns[order(goana_sns$P.DE, decreasing = FALSE),]
+## What are the most enriched annotation terms?
+topGO(goana_sns, ontology = "CC", number = 5)
+topGO(goana_sns, ontology = "MF", number = 5)
+topGO(goana_sns, ontology = "BP", number = 5)
+
+
+goana_noya <- goana(de = unique(noya_entrez$entrezgene_id), species = "Mm", 
+                   universe = bg_expressed$entrezgene_id, covariate = gene_length)
+goana_noya <- goana_noya[order(goana_noya$P.DE, decreasing = FALSE),]
+topGO(goana_noya, ontology = "CC", number = 5)
+topGO(goana_noya, ontology = "MF", number = 5)
+topGO(goana_noya, ontology = "BP", number = 5)
+
+
+goana_sns_noya <- goana(de = unique(sns_noya_entrez$entrezgene_id), species = "Mm", 
+                   universe = bg_expressed$entrezgene_id, covariate = gene_length)
+goana_sns_noya <- goana_sns_noya[order(goana_sns_noya$P.DE, decreasing = FALSE),]
+topGO(goana_sns_noya, ontology = "CC", number = 5)
+topGO(goana_sns_noya, ontology = "MF", number = 5)
+topGO(goana_sns_noya, ontology = "BP", number = 5)
+```
+
+
+Maybe we should use all the enriched genes as background? We are  not interested in all expressed genes, but only in the enriched genes, and we want to know what types of genes are found in both studies and which are only detected in one of the two studies, possibly beacause the SNS preparation protocol was different.
+
+```{r}
+enriched <- unique(c(sns_wt_1mo_expr$gene_id, 
+                     noya$feature_ID[noya$synaptic_enriched_3104=="+"]))
+bg_enriched <- getBM(attributes = c("ensembl_gene_id","entrezgene_id"), 
+                       values = enriched, mart = ensembl )
+bg_enriched <- bg_enriched[bg_enriched$ensembl_gene_id %in% enriched, ]
+
+## Match gene length to bg list
+genes <- gtf[gtf$type == "gene"]
+m <- match(bg_enriched$ensembl_gene_id, genes$gene_id)
+gene_length <- width(genes)[m]
+
+
+goana_sns <- goana(de = unique(sns_entrez$entrezgene_id), species = "Mm", 
+                   universe = bg_enriched$entrezgene_id, covariate = gene_length)
+goana_sns <- goana_sns[order(goana_sns$P.DE, decreasing = FALSE),]
+## What are the most enriched annotation terms?
+topGO(goana_sns, ontology = "CC", number = 5)
+topGO(goana_sns, ontology = "MF", number = 5)
+topGO(goana_sns, ontology = "BP", number = 5)
+
+
+goana_noya <- goana(de = unique(noya_entrez$entrezgene_id), species = "Mm", 
+                   universe = bg_enriched$entrezgene_id, covariate = gene_length)
+goana_noya <- goana_noya[order(goana_noya$P.DE, decreasing = FALSE),]
+topGO(goana_noya, ontology = "CC", number = 5)
+topGO(goana_noya, ontology = "MF", number = 5)
+topGO(goana_noya, ontology = "BP", number = 5)
+
+
+goana_sns_noya <- goana(de = unique(sns_noya_entrez$entrezgene_id), species = "Mm", 
+                   universe = bg_enriched$entrezgene_id, covariate = gene_length)
+goana_sns_noya <- goana_sns_noya[order(goana_sns_noya$P.DE, decreasing = FALSE),]
+topGO(goana_sns_noya, ontology = "CC", number = 5)
+topGO(goana_sns_noya, ontology = "MF", number = 5)
+topGO(goana_sns_noya, ontology = "BP", number = 5)
+```
+

@@ -1,0 +1,757 @@
+---
+title: "Mass spec analysis and comparison with RNA- and CLIP-seq"
+author: "Katharina Hembach"
+date: "12/2/2019"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+suppressPackageStartupMessages({
+  library(here)
+  library(dplyr)
+  library(ggplot2)
+  library(org.Mm.eg.db)
+  library(rtracklayer)
+  library(data.table)
+  library(ggrepel)
+  library(stringr)
+  library(limma)
+  library(UniProt.ws)
+  library(ggExtra)
+  library(tidyr)
+ })
+```
+
+
+# Data import
+
+We import the list of CLIP targets and the RNA-seq DE analysis results from SNS 6 months KI vs. WT.
+```{r}
+clip_dir <- "/home/Shared/data/seq/sonu_CLIPseq/clip_March2018/"
+fus_targets <- read.table(file.path(clip_dir, "analysis/deduplicated/MA_plot_selection/top_peaks_loess_adjM_pValue_1e-05_gene_anno_manually_filtered_cluster_location_classified.txt"), header = TRUE)
+
+## RNAseq 6 months SNS KI vs WT edgeR results:
+rnaseq <- here("output/outputR/edgeR_dge_results_groupSNS.KI.6_mo-groupSNS.WT.6_mo.txt")
+rnaseq <- read.table(here("output/outputR/edgeR_dge_results_groupSNS.KI.6_mo-groupSNS.WT.6_mo.txt"), header = TRUE)
+
+gtf_file <- "/home/Shared/data/annotation/Mouse/Ensembl_GRCm38.90/gtf/Mus_musculus.GRCm38.90.gtf"
+```
+
+# First MS experiment
+We import the mass spec results:
+```{r}
+ms <- here("mass_spec/MQ_report.txt")
+ms <- fread(ms, header = TRUE)
+head(ms)
+```
+
+We remove all REV_ (revers) and Cont (control) proteins.
+```{r}
+ms <- ms %>% dplyr::filter(!grepl("^zz|^REV", proteinID)) 
+```
+
+We need to know the Swissprot IDs per protein group (ProteinName). We remove the tr IDs and only keep the sp IDs because they were used in the first experiment.
+```{r}
+ms <- ms %>% dplyr::mutate(ID = 1:nrow(ms)) %>% separate_rows(ProteinName, sep = ";") %>%
+  dplyr::filter(!grepl("^tr|^zz|^REV|^CON", ProteinName))
+```
+There are no duplicate SP IDs!
+
+We parse the protein name from the sp IDs
+```{r}
+a <- str_split(ms$ProteinName, pattern = "\\|", simplify = TRUE)
+ms$SP <- a[,2]
+ms$protein_name <- a[,3] %>% str_remove(pattern = "_MOUSE")
+```
+
+We match the Uniprot IDs to the gene names
+```{r}
+# availableUniprotSpecies(pattern="musculus")
+up <- UniProt.ws(taxId=10090)
+
+# keytypes(up)
+## get the Ensembl gene ID for each UniprotID
+res <- select(up, keys = ms$SP,
+              columns = "ENSEMBL",
+              keytype = "UNIPROTKB")
+colnames(res) <- c("SP", "gene_id")
+
+## merge the two tables (some Uniprot IDs have more than one Ensembl ID!)
+ms  <- ms %>% dplyr::left_join(res, by = "SP") 
+
+# ms$gene_ID <- NA
+# m <- match(ms$SP, res$UNIPROTKB)
+# ms$gene_id <- res$ENSEMBL[m]
+# is.na(ms$gene_id) %>% table  ## most SP IDs could be mapped to Ensembl
+
+
+## convert Protein names to gene names
+## all proteins with missing ensembl ID
+indx <- which(is.na(ms$gene_id))
+
+missing <- data.frame(protein = ms$protein_name[indx], 
+                      gene = stringr::str_to_title(ms$protein_name[indx]))
+
+missing_ensembl <- getBM(attributes = c("ensembl_gene_id", "uniprot_gn_symbol"), 
+                         values = missing$gene, 
+                         mart = ensembl, 
+                         filter = "uniprot_gn_symbol") 
+
+## match the gene symbol to the protein names
+missing <- missing_ensembl %>% dplyr::left_join(missing, by = c("uniprot_gn_symbol" = "gene"))
+ms <- ms %>% dplyr::left_join(missing %>% 
+                          dplyr::select(ensembl_gene_id, protein), 
+                        by = c("protein_name" = "protein"))
+ms$gene_id[is.na(ms$gene_id)] <- ms$ensembl_gene_id[is.na(ms$gene_id)]
+ms$ensembl_gene_id <- NULL
+is.na(ms$gene_id) %>% table ## now we are only missing a few gene ids
+```
+
+We match the RNA-seq results
+```{r}
+ms_rna <- ms %>% left_join(rnaseq, by = "gene_id", suffix = c("", "_RNAseq")) %>%
+  dplyr::rename(log2FC_MS = log2FC, log2FC_RNAseq = logFC)
+```
+
+We also label the CLIP-seq FUS targets
+
+```{r}
+ms_rna <- ms_rna %>% left_join(fus_targets %>% 
+                           dplyr::select(nr_peaks, gene_cluster, gene_id))
+ms_rna$FUS_target <- ifelse(!is.na(ms_rna$nr_peaks), "Yes", "No")
+```
+
+
+## Writing the table to file
+
+We export the table to a file.
+```{r}
+write.table(ms_rna, file = here("mass_spec/MQ_report_RNAseq_CLIPtargets.txt"), 
+            quote = FALSE, row.names = FALSE, sep = "\t")
+```
+Table with only the FUS targets, sorted by MS and RNA-seq log2FC
+```{r}
+write.table(ms_rna %>% dplyr::filter(FUS_target == "Yes") %>%
+              dplyr::arrange(desc(log2FC_MS), desc(log2FC_RNAseq)), 
+            file = here("mass_spec/MQ_report_RNAseq_only_FUS_targets.txt"), 
+            quote = FALSE, row.names = FALSE, sep = "\t")
+```
+
+
+## Log2FC scatterplot
+
+Now we can finally plot the log2FC of MS and RNA-seq and label the FUS targets.
+```{r}
+dat1 <- ms_rna %>% dplyr::filter(!is.na(log2FC_RNAseq))
+nrow(ms_rna) - nrow(dat1)
+nrow(dat1)
+max_lim <- max(abs(dat1$log2FC_MS), abs(dat1$log2FC_RNAseq), na.rm = TRUE)
+x_y_lim <- c(-max_lim, max_lim) 
+
+p <- ggplot(dat1, aes(x = log2FC_RNAseq, y = log2FC_MS, color = FUS_target)) +
+  geom_point(data = dat1 %>% dplyr::arrange(FUS_target), 
+                    aes(color = factor(FUS_target, levels = c("No", "Yes"))), 
+             alpha = 0.5) +
+  scale_color_manual(name = "FUS target", breaks = c("No", "Yes"),
+                     values = c("darkgrey", "steelblue")) +
+  theme_bw(base_size = 16) + 
+  coord_cartesian(xlim = x_y_lim, ylim = x_y_lim) + 
+  guides(colour = guide_legend(override.aes = list(alpha = 1)))
+
+p 
+ggsave(filename = here("mass_spec/log2FC_MS_vs_RNAseq.pdf"), 
+       plot = p, width = 6, height = 5)
+```
+
+What if we only plot the FUS targets?
+```{r}
+dat2 <- dat1 %>% dplyr::filter(FUS_target == "Yes")
+nrow(dat2)
+max_lim <- max(abs(dat2$log2FC_MS), abs(dat2$log2FC_RNAseq), na.rm = TRUE)
+x_y_lim <- c(-max_lim, max_lim)
+
+p <- ggplot(dat2, aes(x = log2FC_RNAseq, y = log2FC_MS)) +
+  geom_point(alpha = 0.5, color = "steelblue") + 
+  theme_bw(base_size = 16) + 
+  coord_cartesian(xlim = x_y_lim, ylim = x_y_lim) + 
+  theme(aspect.ratio=1)
+p 
+ggsave(filename = here("mass_spec/log2FC_MS_vs_RNAseq_FUS_targets.pdf"), 
+       plot = p, width = 5, height = 5)
+```
+
+
+### Filtering proteins and genes with logFC close to 0
+
+What if we remove all genes/proteins with log2FC below 0.5?
+
+```{r}
+dat3 <- dat1 %>% dplyr::filter(abs(log2FC_MS) >= 0.1, 
+                               abs(log2FC_RNAseq) >= 0.1)
+nrow(dat3)
+max_lim <- max(abs(dat3$log2FC_MS), abs(dat3$log2FC_RNAseq), na.rm = TRUE)
+x_y_lim <- c(-max_lim, max_lim)
+
+p <- ggplot(dat3, aes(x = log2FC_RNAseq, y = log2FC_MS, color = FUS_target)) +
+  geom_point(data = dat3 %>% dplyr::arrange(FUS_target), 
+                    aes(color = factor(FUS_target, levels = c("No", "Yes"))), 
+             alpha = 0.5) +
+  scale_color_manual(name = "FUS target", breaks = c("No", "Yes"),
+                     values = c("darkgrey", "steelblue")) +
+  theme_bw(base_size = 16) + 
+  coord_cartesian(xlim = x_y_lim, ylim = x_y_lim) + 
+  theme(aspect.ratio=1) +
+  guides(colour = guide_legend(override.aes = list(alpha = 1)))
+p 
+ggsave(filename = here("mass_spec/log2FC_MS_vs_RNAseq_log2FC_0.1.pdf"), 
+       plot = p, width = 6, height = 5)
+```
+
+Removing the outliers with log2FC > 2:
+```{r}
+x_y_lim <- c(-2, 2)
+
+p <- ggplot(dat3, aes(x = log2FC_RNAseq, y = log2FC_MS, color = FUS_target)) +
+  geom_point(data = dat3 %>% dplyr::arrange(FUS_target), 
+                  aes(color = factor(FUS_target, levels = c("No", "Yes"))), 
+           alpha = 0.6) +
+  scale_color_manual(name = "FUS target", breaks = c("No", "Yes"),
+                   values = c("darkgrey", "steelblue")) +
+  theme_bw(base_size = 16) + 
+  coord_cartesian(xlim = x_y_lim, ylim = x_y_lim) + 
+  theme(aspect.ratio=1)
+p 
+ggsave(filename = here("mass_spec/log2FC_MS_vs_RNAseq_log2FC_0.1_zoom.pdf"), 
+       plot = p, width = 6, height = 5)
+```
+
+Only the FUS targets:
+
+```{r}
+dat4 <- dat3 %>% dplyr::filter(FUS_target == "Yes")
+nrow(dat4)
+
+max_lim <- max(abs(dat4$log2FC_MS), abs(dat4$log2FC_RNAseq), na.rm = TRUE)
+x_y_lim <- c(-max_lim, max_lim)
+
+p <- ggplot(dat4, aes(x = log2FC_RNAseq, y = log2FC_MS, color = FUS_target)) +
+  geom_point(alpha = 0.6, color = "steelblue") + 
+  theme_bw(base_size = 16) + 
+  coord_cartesian(xlim = x_y_lim, ylim = x_y_lim) + 
+  theme(aspect.ratio=1) +
+  geom_text_repel(data = dat4 %>% filter(log2FC_MS > 0 & log2FC_RNAseq > 0) %>%
+                    filter(log2FC_RNAseq > 0.2 | log2FC_MS > 0.2), 
+                  aes(label = gene_name),  xlim = c(0.2, NA), ylim = c(-0.1, NA),
+                  segment.color = "grey50", show.legend = FALSE, color = "black",
+                  box.padding = 0.2) + 
+  geom_text_repel(data = dat4 %>% filter(log2FC_MS < 0 & log2FC_RNAseq < 0) %>%
+                    filter(log2FC_RNAseq < -0.2 | log2FC_MS < -0.2), 
+                  aes(label = gene_name),  xlim = c(NA, -0.2), ylim = c(NA, 0.1),
+                  segment.color = "grey50", show.legend = FALSE, color = "black",
+                  box.padding = 0.2)
+ 
+p 
+ggsave(filename = here("mass_spec/log2FC_MS_vs_RNAseq_FUS_targets_log2FC_0.1_zoom_label.pdf"), 
+       plot = p, width = 6, height = 5)
+```
+
+
+##  Volcano plot
+
+Volcano plot of all detected proteins. FUS targets are plotted in blue.
+All proteins with logFC > 1 are highlighted.
+
+```{r}
+## Volcano plot with labeled genes (top p-value or logFC)
+ggplotVolcano <- function(dat, outfile, alpha = 0.8, FUS_targets = NULL, 
+                          color_targets = FALSE, gene_labels = NULL,
+                          label_coord = 1.5, x_range = NULL, y_range = NULL, 
+                          logFC_cutoff = 1){
+
+  dat <- dat[!is.na(dat$PValue),]
+  dat$mlog10adjPValue <- -log10(dat$adjPValue)
+  df <- data.frame(logFC = dat$logFC, mlog10adjPValue = dat$mlog10adjPValue, 
+                   adjPValue = dat$adjPValue, gene = dat$gene_name, 
+                   protein = dat$protein_name)
+  
+  p <- ggplot(df, aes(x = logFC, y = mlog10adjPValue))
+   
+  if(is.null(FUS_targets)){
+    cols <- as.factor(ifelse(df$adjPValue <= 0.05, 
+                             ifelse(df$logFC > 0, "TRUE & logFC > 0",  
+                                    "TRUE & logFC < 0"), "FALSE"))
+    p <- p + geom_point(alpha = alpha, aes(color = cols)) +
+      scale_color_manual(values = c("TRUE & logFC > 0" = "#882255", 
+                                    "TRUE & logFC < 0" = "#117733",
+                                    "FALSE" = "darkgrey"), 
+                         name = "adjPValue \u2264 0.05")
+  } else {
+    if (color_targets){
+     df$cols <- factor(ifelse(df$gene %in% fus_genes, "FUS target",
+                              # ifelse(df$adjPValue <= 0.05,
+                                     ifelse(df$logFC > 1, "adjPValue \u2264 0.05 |\nlogFC > 1",
+                                            ifelse(df$logFC < -1, "adjPValue \u2264 0.05 |\nlogFC < -1", "not changed"))
+                                            # ,"not selected"))
+                          ), levels = c("not changed", "adjPValue \u2264 0.05 |\nlogFC < -1", 
+                                        "adjPValue \u2264 0.05 |\nlogFC > 1", "FUS target"))
+      p <- p + geom_point(data = df %>% dplyr::arrange(cols), 
+                          aes(color = cols), alpha = alpha) + 
+        scale_color_manual(name = "Proteins", 
+                           values = c("FUS target" = "steelblue3", 
+                                      "not changed" = "darkgrey", 
+                                      "adjPValue \u2264 0.05 |\nlogFC > 1" = "#882255", 
+                                      "adjPValue \u2264 0.05 |\nlogFC < -1" = "#117733"))
+     } else{
+      p <- p + geom_point(data = df %>% filter(!gene %in% FUS_targets), 
+                   aes(color = "darkgrey"), alpha = alpha) + 
+        geom_point(data = df %>% filter(gene %in% FUS_targets),
+               aes(color = "red"), alpha = alpha) +
+      scale_color_manual(name = "FUS targets", labels = c("FALSE", "TRUE"), 
+                         values = c("darkgrey", "red"))
+    }
+  }
+  p <- p + theme_bw() +
+    theme(text = element_text(size = 16)) + 
+    ylab("-log10(adjPValue)") 
+  
+  if(!is.null(gene_labels)){
+    repel <- df %>% filter(gene %in% gene_labels) %>% 
+      arrange(desc(mlog10adjPValue))
+    p <- p + geom_text_repel(data = repel %>% filter(logFC > 0), 
+                           aes(label = protein), xlim = c(label_coord, NA), 
+                           segment.color = "grey30", show.legend = FALSE) +
+      geom_text_repel(data = repel %>% filter(logFC < 0), 
+                      aes(label = protein), xlim = c(NA, -label_coord), 
+                      segment.color = "grey30", show.legend = FALSE)
+  }
+
+  ## x and y-axis range
+  if(!is.null(x_range) & !is.null(y_range)){
+      p <- p + coord_cartesian(xlim = c(-x_range, x_range), ylim = c(0, y_range))
+  }
+  
+  ## draw line at adjPValue cutoff and end x = 0 
+  p <- p + theme(aspect.ratio = 1) + 
+    geom_hline(yintercept = -log10(0.05), linetype="dashed", color = "black")  +
+    geom_vline(xintercept = -logFC_cutoff, linetype = "dashed", color = "black") +
+    geom_vline(xintercept = logFC_cutoff, linetype = "dashed", color = "black")
+   
+  print(p)
+  ggsave(filename = outfile, plot = p, width = 7, height = 6, type = "cairo", 
+         dpi = 500)
+}
+```
+
+
+```{r}
+dat_ms <- ms_rna %>% dplyr::select(P.Value, adj.P.Val, log2FC_MS, gene_name, protein_name, gene_id, SP) %>%
+  dplyr::rename(PValue = P.Value, adjPValue = adj.P.Val, logFC = log2FC_MS) %>%
+  mutate(protein_name = str_remove(protein_name, pattern = "_MOUSE"))
+  
+x_range <- 0
+y_range <- 0
+dat_ms <- dat_ms[!is.na(dat_ms$PValue),]
+x_range<- max(x_range, max(abs(dat_ms$logFC)))
+y_range <- max(y_range, max(-log10(dat_ms$adjPValue)))
+x_range
+y_range
+
+gene_labels <- c("Fus", "Sv2a", "Syt1", "Syp", "App", "Atp1a1", "Atp1a3", 
+                 "Atp1b1", "Gabra1", "Grin1", "Gria2", "Gria3", "Ahcyl1", 
+                 "Reep3", "Hnrnpd")
+
+fus_genes <- unique(fus_targets$gene_name)
+
+file_name <- here("mass_spec/volcano_MS_FUS_targets.png")
+ggplotVolcano(dat_ms, file_name, label_coord = 3, 
+              x_range = x_range, y_range = y_range, gene_labels = gene_labels,
+              FUS_targets = fus_genes, color_targets = TRUE)
+
+file_name <- here("mass_spec/volcano_MS_FUS_targets_no_label.png")
+ggplotVolcano(dat_ms, file_name, label_coord = 2.5, 
+              x_range = x_range, y_range = y_range, gene_labels = "Fus",
+              FUS_targets = fus_genes, color_targets = TRUE)
+```
+
+## Table with the changed proteins
+
+Changed proteins = all proteins with adj. P-value <= 0.05 or logFC < -1 or > 1.
+```{r}
+changed <- ms_rna %>% dplyr::filter(adj.P.Val <= 0.05 | log2FC_MS < -1 | log2FC_MS > 1) %>%
+              dplyr::arrange(desc(abs(log2FC_MS)), desc(abs(log2FC_RNAseq)))
+dim(changed)
+write.table(changed, file = here("mass_spec/MQ_report_changed_proteins.txt"), 
+            quote = FALSE, row.names = FALSE, sep = "\t")
+```
+
+### ORA of the changed proteins
+
+
+We first convert the Ensembl IDs to Entrez and then to Uniprot. The reverse is not supported.
+```{r}
+## Ensembl to Entrez
+xx <- as.list(org.Mm.egENSEMBL2EG)
+## table with the ID mapping between ensembl and Entrez
+map_tab_ens <- data.table(EnsemblID = rep(names(xx), times = lengths(xx)),
+                          EntrezID = unlist(xx))
+head(map_tab_ens)
+
+## Entrez to Uniprot
+x <- org.Mm.egUNIPROT
+entrez_uniprot <- as.list(x)
+
+## table with the ID mapping between Entrez and Uniprot
+map_tab_uni <- data.table(EntrezID = rep(names(entrez_uniprot), 
+                                         times = lengths(entrez_uniprot)), 
+                          UniprotID = unlist(entrez_uniprot))
+head(map_tab_uni)
+
+## joining the two tables
+map_tab <- map_tab_ens %>% full_join(map_tab_uni)
+
+
+## adding the entrez ids using the SP for merging
+dat_entrez <- dat_ms %>% left_join(map_tab %>% dplyr::select(EntrezID, UniprotID) %>% unique, 
+                                   by = c("SP" = "UniprotID")) 
+
+
+
+changed_entrez <- changed %>% left_join(map_tab %>% dplyr::select(EntrezID, UniprotID) %>% unique, 
+                                   by = c("SP" = "UniprotID")) 
+
+```
+
+As background we use all detected proteins.
+```{r}
+gtf <- import(gtf_file)
+## Match gene length to bg list
+genes <- gtf[gtf$type == "gene"]
+
+# unique set of detected proteins
+dup <- !duplicated(dat_entrez$EntrezID)
+m <- match(dat_entrez$EntrezID[dup], genes$EntrezID)
+gene_length <- width(genes)[m]
+```
+
+Significant upregulated genes in SNS KI at 6 months compared to WT
+```{r}
+## GO analysis with goana using gene length as covariate
+goana_changed <- goana(de = unique(changed_entrez$EntrezID), species = "Mm", 
+                   universe = dat_entrez$EntrezID[dup], covariate = gene_length)
+goana_changed <- goana_changed[order(goana_changed$P.DE, decreasing = FALSE),]
+## What are the most enriched annotation terms?
+topGO(goana_changed, ontology = "CC", number = 10)
+topGO(goana_changed, ontology = "BP", number = 15)
+topGO(goana_changed, ontology = "MF", number = 15)
+```
+
+
+
+
+# Second MS experiment
+
+We repeated the MS experiment and we want to know if we can replicate the results of the first experiment.
+```{r}
+ms2 <- here("mass_spec/MQ_2_grp_report_p3273_o6609_SNS_KI_vs_WT.txt")
+ms2 <- fread(ms2, header = TRUE)
+head(ms2)
+```
+
+We remove all REV_ (revers) and Cont (control) proteins.
+```{r}
+ms2 <- ms2 %>% dplyr::filter(!grepl("^zz|^REV", proteinID)) 
+```
+
+We need to know the Swissprot IDs per protein group (ProteinName). We remove the tr IDs and only keep the sp IDs because they were used in the first experiment.
+```{r}
+ms2 <- ms2 %>% dplyr::mutate(ID = 1:nrow(ms2)) %>% separate_rows(ProteinName, sep = ";") %>%
+  dplyr::filter(!grepl("^tr|^zz|^REV|^CON", ProteinName))
+```
+There are no duplicate SP IDs!
+
+We parse the protein name from the sp IDs
+```{r}
+a <- str_split(ms2$ProteinName, pattern = "\\|", simplify = TRUE)
+ms2$SP <- a[,2]
+ms2$protein_name <- a[,3] %>% str_remove(pattern = "_MOUSE")
+```
+
+We match the Uniprot IDs to the gene names
+```{r}
+## get the Ensembl gene ID for each UniprotID
+res <- select(up, keys = ms2$SP,
+              columns = "ENSEMBL",
+              keytype = "UNIPROTKB")
+colnames(res) <- c("SP", "gene_id")
+
+## merge the two tables (some Uniprot IDs have more than one Ensembl ID!)
+ms2  <- ms2 %>% dplyr::left_join(res, by = "SP") 
+
+## convert Protein names to gene names
+## all proteins with missing ensembl ID
+indx <- which(is.na(ms2$gene_id))
+
+missing <- data.frame(protein = ms2$protein_name[indx], 
+                      gene = stringr::str_to_title(ms2$protein_name[indx]))
+
+missing_ensembl <- getBM(attributes = c("ensembl_gene_id", "uniprot_gn_symbol"), 
+                         values = missing$gene, 
+                         mart = ensembl, 
+                         filter = "uniprot_gn_symbol") 
+
+## match the gene symbol to the protein names
+missing <- missing_ensembl %>% dplyr::left_join(missing, by = c("uniprot_gn_symbol" = "gene"))
+ms2 <- ms2 %>% dplyr::left_join(missing %>% 
+                          dplyr::select(ensembl_gene_id, protein), 
+                        by = c("protein_name" = "protein"))
+ms2$gene_id[is.na(ms2$gene_id)] <- ms2$ensembl_gene_id[is.na(ms2$gene_id)]
+ms2$ensembl_gene_id <- NULL
+is.na(ms2$gene_id) %>% table ## now we are only missing a few gene ids
+```
+
+We match the RNA-seq results
+```{r}
+ms2_rna <- ms2 %>% left_join(rnaseq, by = "gene_id", suffix = c("", "_RNAseq")) %>%
+  dplyr::rename(log2FC_MS = log2FC, log2FC_RNAseq = logFC)
+```
+
+We also label the CLIP-seq FUS targets
+
+```{r}
+ms2_rna <- ms2_rna %>% left_join(fus_targets %>% 
+                           dplyr::select(nr_peaks, gene_cluster, gene_id))
+ms2_rna$FUS_target <- ifelse(!is.na(ms2_rna$nr_peaks), "Yes", "No")
+```
+
+## Writing the table to file
+
+We export the table to a file.
+```{r}
+write.table(ms2_rna, file = here("mass_spec/MQ_report_experiment2_RNAseq_CLIPtargets.txt"), 
+            quote = FALSE, row.names = FALSE, sep = "\t")
+```
+Table with only the FUS targets, sorted by MS and RNA-seq log2FC
+```{r}
+write.table(ms2_rna %>% dplyr::filter(FUS_target == "Yes") %>%
+              dplyr::arrange(desc(log2FC_MS), desc(log2FC_RNAseq)), 
+            file = here("mass_spec/MQ_report_experiment2_RNAseq_only_FUS_targets.txt"), 
+            quote = FALSE, row.names = FALSE, sep = "\t")
+```
+
+
+## Log2FC scatterplot
+
+Now we can finally plot the log2FC of MS and RNA-seq and label the FUS targets.
+```{r}
+ms2_dat1 <- ms2_rna %>% dplyr::filter(!is.na(log2FC_RNAseq))
+nrow(ms_rna) - nrow(ms2_dat1)
+nrow(ms2_dat1)
+max_lim <- max(abs(ms2_dat1$log2FC_MS), abs(ms2_dat1$log2FC_RNAseq), na.rm = TRUE)
+x_y_lim <- c(-max_lim, max_lim) 
+
+p <- ggplot(ms2_dat1, aes(x = log2FC_RNAseq, y = log2FC_MS, color = FUS_target)) +
+  geom_point(data = ms2_dat1 %>% dplyr::arrange(FUS_target), 
+                    aes(color = factor(FUS_target, levels = c("No", "Yes"))), 
+             alpha = 0.5) +
+  scale_color_manual(name = "FUS target", breaks = c("No", "Yes"),
+                     values = c("darkgrey", "steelblue")) +
+  theme_bw(base_size = 16) + 
+  coord_cartesian(xlim = x_y_lim, ylim = x_y_lim) + 
+  guides(colour = guide_legend(override.aes = list(alpha = 1)))
+
+p 
+ggsave(filename = here("mass_spec/log2FC_experiment2_MS_vs_RNAseq.pdf"), 
+       plot = p, width = 6, height = 5)
+```
+
+What if we only plot the FUS targets?
+```{r}
+ms2_dat2 <- ms2_dat1 %>% dplyr::filter(FUS_target == "Yes")
+nrow(ms2_dat2)
+max_lim <- max(abs(ms2_dat2$log2FC_MS), abs(ms2_dat2$log2FC_RNAseq), na.rm = TRUE)
+x_y_lim <- c(-max_lim, max_lim)
+
+p <- ggplot(ms2_dat2, aes(x = log2FC_RNAseq, y = log2FC_MS)) +
+  geom_point(alpha = 0.5, color = "steelblue") + 
+  theme_bw(base_size = 16) + 
+  coord_cartesian(xlim = x_y_lim, ylim = x_y_lim) + 
+  theme(aspect.ratio=1)
+p 
+ggsave(filename = here("mass_spec/log2FC_experiment2_MS_vs_RNAseq_FUS_targets.pdf"), 
+       plot = p, width = 5, height = 5)
+```
+
+
+## Volcano plot
+
+```{r}
+dat_ms2 <- ms2_rna %>% dplyr::select(P.Value, adj.P.Val, log2FC_MS, gene_name, protein_name, gene_id, SP) %>%
+  dplyr::rename(PValue = P.Value, adjPValue = adj.P.Val, logFC = log2FC_MS) %>%
+  mutate(protein_name = str_remove(protein_name, pattern = "_MOUSE"))
+  
+x_range <- 0
+y_range <- 0
+dat_ms2 <- dat_ms2[!is.na(dat_ms2$PValue),]
+x_range<- max(x_range, max(abs(dat_ms2$logFC)))
+y_range <- max(y_range, max(-log10(dat_ms2$adjPValue)))
+
+file_name <- here("mass_spec/volcano_MS_experiment2_FUS_targets.png")
+ggplotVolcano(dat_ms2, file_name, label_coord = 2.5, 
+              x_range = x_range, y_range = y_range, gene_labels = gene_labels,
+              FUS_targets = fus_genes, color_targets = TRUE)
+
+file_name <- here("mass_spec/volcano_MS_experiment2_FUS_targets_no_label.png")
+ggplotVolcano(dat_ms2, file_name, label_coord = 2.5, 
+              x_range = x_range, y_range = y_range, gene_labels = "Fus",
+              FUS_targets = fus_genes, color_targets = TRUE)
+```
+
+## Table with the changed proteins
+
+Changed proteins = all proteins with adj. P-value <= 0.05 or logFC < -1 or > 1.
+```{r}
+changed <- ms2_rna %>% dplyr::filter(adj.P.Val <= 0.05 | log2FC_MS < -1 | log2FC_MS > 1) %>%
+              dplyr::arrange(desc(abs(log2FC_MS)), desc(abs(log2FC_RNAseq)))
+dim(changed)
+write.table(changed, file = here("mass_spec/MQ_report_experiment2_changed_proteins.txt"), 
+            quote = FALSE, row.names = FALSE, sep = "\t")
+```
+
+### ORA of the changed proteins
+
+We first convert the Ensembl IDs to Entrez and then to Uniprot. The reverse is not supported.
+```{r}
+## adding the entrez ids using the SP for merging
+dat_ms2_entrez <- dat_ms2 %>% left_join(map_tab %>% dplyr::select(EntrezID, UniprotID) %>% unique, 
+                                   by = c("SP" = "UniprotID")) 
+
+
+
+changed_entrez <- changed %>% left_join(map_tab %>% dplyr::select(EntrezID, UniprotID) %>% unique, 
+                                   by = c("SP" = "UniprotID")) 
+```
+
+As background we use all detected proteins.
+```{r}
+# unique set of detected proteins
+dup <- !duplicated(dat_ms2_entrez$EntrezID)
+m <- match(dat_ms2_entrez$EntrezID[dup], genes$EntrezID)
+gene_length <- width(genes)[m]
+```
+
+Significant upregulated genes in SNS KI at 6 months compared to WT
+```{r}
+## GO analysis with goana using gene length as covariate
+goana_changed <- goana(de = unique(changed_entrez$EntrezID), species = "Mm", 
+                   universe = dat_ms2_entrez$EntrezID[dup], covariate = gene_length)
+goana_changed <- goana_changed[order(goana_changed$P.DE, decreasing = FALSE),]
+## What are the most enriched annotation terms?
+topGO(goana_changed, ontology = "CC", number = 10)
+topGO(goana_changed, ontology = "BP", number = 15)
+topGO(goana_changed, ontology = "MF", number = 15)
+```
+
+
+# Comparison of the two experiments
+
+```{r}
+ms_full <- ms %>% inner_join(ms2, by = "ProteinName", suffix = c("_1", "_2"))
+```
+
+Do both table have the same protein groups?
+```{r}
+ms_full %>% group_by(ID_1) %>% summarise(sum_ID_2 = length(unique(ID_2))) %>% pull(sum_ID_2) %>% table
+```
+Yes they do, they used the same peptide database for both experiments.
+
+We compare the log2FC of each protein in the first and second experiment.
+```{r}
+dat_full <- dat_ms2 %>% dplyr::select(PValue, adjPValue, logFC, SP) %>%
+  inner_join(dat_ms %>% dplyr::select(PValue, adjPValue, logFC, SP), 
+             by = c("SP"), suffix = c("_2", "_1")) %>% unique
+
+## what are the SP IDs for the FUS targets?
+target_sp <- ms2_rna[ms2_rna$FUS_target == "Yes", c("SP", "gene_name", "protein_name")] %>% 
+  mutate(FUS_target = TRUE)
+dat_full <- dat_full %>% left_join(target_sp) %>% 
+  mutate(FUS_target=replace(FUS_target, is.na(FUS_target), FALSE)) 
+# label FUS
+fus_sp <- ms2_rna[ms2_rna$protein_name == "FUS","SP"]
+dat_full[dat_full$SP == fus_sp, c("gene_name", "protein_name")] <- c("Fus", "FUS")
+
+
+p <- ggplot(dat_full, aes(x = logFC_1, y = logFC_2)) +
+  geom_point(alpha = 0.7) + 
+  theme_bw() + 
+  xlab("log2FC experiment 1") +  ylab("log2FC experiment 2") +
+  theme(aspect.ratio = 1)
+p
+ggsave(filename = here("mass_spec/log2FC_experiment_1_2.pdf"))
+
+
+p <- ggplot(dat_full, aes(x = logFC_1, y = logFC_2)) +
+  geom_density2d() + 
+  theme_bw() + 
+  xlab("log2FC experiment 1") +  ylab("log2FC experiment 2") +
+  theme(aspect.ratio = 1)
+p
+ggsave(filename = here("mass_spec/log2FC_experiment_1_2_density.pdf"))
+
+p <- ggplot(dat_full, aes(x = logFC_1/logFC_2)) +
+  geom_density() + 
+  theme_bw() + 
+  theme(aspect.ratio = 1) + 
+  scale_x_log10()
+p
+ggsave(filename = here("mass_spec/log2FC_ratio_experiment_1_2_density.pdf"))
+
+
+## add marginal density
+x_range <- 0
+y_range <- 0
+dat_full <- dat_full[!is.na(dat_full$logFC_1) & !is.na(dat_full$logFC_2),]
+x_range<- max(x_range, max(abs(dat_full$logFC_1)))
+y_range <- max(y_range, max(abs(dat_full$logFC_2)))
+x_range
+y_range
+
+p <- ggplot(dat_full, aes(x = logFC_1, y = logFC_2)) +
+  geom_point(alpha = 0.7) + 
+  geom_density_2d(colour="#F3AA06") + 
+  theme_bw(base_size = 20) + 
+  xlab("log2FC experiment 1") +  ylab("log2FC experiment 2") +
+  theme(aspect.ratio = 1) + 
+  scale_x_continuous(limits = c(-x_range, x_range)) + 
+  scale_y_continuous(limits = c(-y_range, y_range)) +
+  geom_text_repel(data = dat_full %>% dplyr::filter(protein_name == "FUS"),
+                aes(label = protein_name), show.legend = FALSE)
+ggMarginal(p, type = "density", col = "#F3AA06", fill = "#F3AA06")
+ggsave(filename = here("mass_spec/log2FC_experiment_1_2_marginal.pdf"), 
+       plot = ggMarginal(p, type = "density", col = "#F3AA06", fill = "#F3AA06"))
+
+## FUS targets labelled
+p <- ggplot(dat_full %>% dplyr::arrange(FUS_target), aes(x = logFC_1, y = logFC_2, color = FUS_target)) +
+  geom_point(size = 2, alpha = 0.7) + 
+  geom_density_2d(colour="#F3AA06") + 
+  theme_bw(base_size = 20) + 
+  xlab("log2FC experiment 1") +  ylab("log2FC experiment 2") +
+  theme(aspect.ratio = 1, legend.position = "bottom") + 
+  scale_x_continuous(limits = c(-x_range, x_range)) + 
+  scale_y_continuous(limits = c(-y_range, y_range)) +
+  scale_color_manual(name = "proteins", labels = c("no FUS target", "FUS target"), 
+                     values = c("black", "steelblue3")) +
+  guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+  geom_text_repel(data = dat_full %>% dplyr::filter(protein_name == "FUS"),
+                  aes(label = protein_name), show.legend = FALSE)
+ggMarginal(p, type = "density", col = "#F3AA06", fill = "#F3AA06")
+ggsave(filename = here("mass_spec/log2FC_experiment_1_2_marginal_FUS_targets.pdf"), 
+       plot = ggMarginal(p, type = "density", col = "#F3AA06", fill = "#F3AA06"))
+```

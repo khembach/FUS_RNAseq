@@ -1,0 +1,196 @@
+---
+title: "Comparison with intronic FUS targets"
+author: "Katharina Hembach"
+date: "11/18/2019"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r packages}
+suppressPackageStartupMessages({
+  library(here)
+  library(ggplot2)
+  library(data.table)
+  library(dplyr)
+  library(biomaRt)
+  library(org.Mm.eg.db)
+})
+```
+
+
+```{r}
+clip_dir <- "/home/Shared/data/seq/sonu_CLIPseq/clip_March2018/"
+fus_targets <- read.table(file.path(clip_dir, "analysis/deduplicated/MA_plot_selection/top_peaks_loess_adjM_pValue_1e-05_gene_anno_manually_filtered_cluster_location_classified.txt"), header = TRUE)
+
+up_targets <- read.table(here("results/SNS.KI.6_mo_vs_SNS.WT.6_mo_up_FUS_targets.txt"), header = TRUE)
+down_targets <- read.table(here("results/SNS.KI.6_mo_vs_SNS.WT.6_mo_down_FUS_targets.txt"), header = TRUE)
+
+up <- read.table(here("results/SNS.KI.6_mo_vs_SNS.WT.6_mo_up.txt"), header = TRUE)
+down <- read.table(here("results/SNS.KI.6_mo_vs_SNS.WT.6_mo_down.txt"), header = TRUE)
+
+gtf_file <- "/home/Shared/data/annotation/Mouse/Ensembl_GRCm38.90/gtf/Mus_musculus.GRCm38.90.gtf"
+```
+
+
+## Import list of intronic FUS targets
+
+```{r}
+intron_tar <- fread(here("magda_intronic_FUS_targets/Supplementary_Table2_120713.txt"))
+```
+
+We convert the RefSeq identifiers to Ensembl Identifiers. Some of the identifiers are GenBank, some are RefSeq, so we use the org.Mm.eg.db R package to convert them first to Entrez IDs and then to Ensembl.
+```{r}
+## list of all GenBank IDs and the corresponding Entrez IDs
+xx <- as.list(org.Mm.egACCNUM2EG)
+intron_tar$Entrez_ID <- NA
+entrez_match <- unlist(xx[intron_tar$Refseq_identifier])
+intron_tar$Entrez_ID[match(names(entrez_match), 
+                           intron_tar$Refseq_identifier)] <- entrez_match
+
+## convert the Entrez IDs to Ensembl
+x <- org.Mm.egENSEMBL
+ensembl_match <- unlist(as.list(x[intron_tar$Entrez_ID[!is.na(intron_tar$Entrez_ID)]]))
+intron_tar$Ensembl_ID <- NA
+m <- match(names(ensembl_match),intron_tar$Entrez_ID)
+intron_tar$Ensembl_ID[m[!is.na(m)]] <- ensembl_match[!is.na(m)]
+# How many genes do not have a matching Ensembl ID?
+table(is.na(intron_tar$Ensembl_ID))
+```
+
+We sort the table by the number of intronic clusters in the FUS and TDP-43 CLIP. All genes with at least 1 intronic FUS cluster in both samples are considered intonic targets. We also remove all genes without a FUS cluster since they are not bound by FUS.
+
+```{r}
+intron_tar <- intron_tar %>% 
+  arrange(desc(FUS_cluster_introns), desc(TDP_cluster_introns)) %>%
+  filter(FUS_cluster_introns > 0)
+intron_tar <- intron_tar %>% dplyr::filter(FUS_cluster_Total > 0)
+```
+
+Some genes could not be mapped to Ensembl IDs, we remove these genes, because we cannot match them to our results.
+
+```{r}
+intron_tar <- intron_tar %>% filter(!is.na(Ensembl_ID))
+```
+
+
+## Overlap with SNS RNA-seq
+
+We want to know if the intronic FUS targets were present in our RNA-seq data.
+
+First, we read the results from the RNA-seq edgeR analysis (SNS 6 months WT vs. KI) and we filter the significantly up and down regulated genes.
+
+```{r}
+se <- readRDS(here("output/outputR/edgeR_dge.rds" ))
+sg <- se$sg
+comp <- names(rowData(sg))[7:10]
+sns_6mo <- rowData(sg)[[comp[4]]]
+sns_6mo <- sns_6mo %>% as.data.frame %>% arrange(FDR)
+sns_6mo <- list(res = sns_6mo %>% dplyr::filter(!is.na(FDR)), 
+                up = sns_6mo %>% filter(FDR <= 0.05 & logFC > 0),
+                down = sns_6mo %>% filter(FDR <= 0.05 & logFC < 0))
+```
+
+
+We want to know how many of the intronic FUS targets were detected at the synaptic site. We label each of the FUS targets if it was detected at 6 months and if it was up- or down-regulated or unchanged in KI compared to WT.
+
+```{r}
+## How many of the intronic FUS targets are in the list of genes that were analysed for DE?
+intron_tar$Ensembl_ID %in% sns_6mo[["res"]]$gene_id %>% table
+
+## which genes were up, down or unchanges?
+intron_tar$SNS_KI_vs_WT_6mo <- "not_significant"
+
+sns_up <- sns_6mo[["up"]] %>% pull(gene_id)
+intron_tar$SNS_KI_vs_WT_6mo[intron_tar$Ensembl_ID %in% sns_up] <- "up"
+
+sns_down <- sns_6mo[["down"]] %>% pull(gene_id)
+intron_tar$SNS_KI_vs_WT_6mo[intron_tar$Ensembl_ID %in% sns_down] <- "down"
+
+## What are the up and down regulated genes?
+intron_tar %>% filter(SNS_KI_vs_WT_6mo == "up")
+intron_tar %>% filter(SNS_KI_vs_WT_6mo == "down")
+```
+
+
+## Overlap with synaptic FUS targets
+
+Are any of the intornic FUS targets from Magda's paper among the SNS FUS targets?
+
+```{r}
+intron_tar$SNS_FUS_target <- intron_tar$Ensembl_ID %in% fus_targets$gene_id
+intron_tar$SNS_FUS_target %>% table
+
+## What are the SNS FUS targets?
+intron_tar %>% filter(SNS_FUS_target)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- ```{r} -->
+<!-- ## convert to Entrez IDs -->
+<!-- ensembl <- useMart("ensembl") -->
+<!-- ensembl <- useDataset("mmusculus_gene_ensembl", mart = ensembl) -->
+
+<!-- intron_tar_ensembl <- getBM(attributes = c("ensembl_gene_id","refseq_mrna", "entrezgene_id"),  -->
+<!--                          values = intron_tar$Refseq_identifier, mart = ensembl) -->
+<!-- intron_tar_ensembl <- intron_tar_ensembl[intron_tar_ensembl$refseq_mrna %in% intron_tar$Refseq_identifier, ] -->
+
+
+<!-- ## We try to conver the gene names to Ensembl gene IDs -->
+<!-- ## NM_001013411 is RefSeq -->
+<!-- ## AK012380 is embl -->
+<!-- intron_tar_refseq <- getBM(attributes = c("ensembl_gene_id","refseq_mrna"),  -->
+<!--                          values = intron_tar$Refseq_identifier, mart = ensembl, filters = "refseq_mrna") -->
+
+<!-- intron_tar_name <- getBM(attributes = c("ensembl_gene_id", "external_gene_name"),  -->
+<!--                          values = intron_tar$Gene_Symbol, mart = ensembl, filters = "external_gene_name") -->
+
+<!-- intron_tar_test <- getBM(attributes = c("ensembl_gene_id", "embl"),  -->
+<!--                          values = intron_tar$Refseq_identifier, mart = ensembl, filters = "embl") -->
+
+<!-- ## to test: "embl" -->
+
+<!-- ## merge the two lists -->
+<!-- intron_tar_ids <- intron_tar_refseq %>% full_join(intron_tar_name) %>% full_join(intron_tar_test) -->
+
+<!-- ``` -->
+
+
+<!-- I used (bioDBnet)[https://biodbnet-abcc.ncifcrf.gov/db/db2dbRes.php] to convert the RefSeq Ids from Magda's table to Ensembl IDs. -->
+
+<!-- ```{r} -->
+<!-- id_table <- fread(here("magda_intronic_FUS_targets/GenBank_2_Ensembl.txt"),  -->
+<!--                   sep = "\t", header = TRUE) -->
+<!-- id_table$V3 <- NULL -->
+<!-- ## some IDs have more than one Ensembl ID. We need to split these entries -->
+<!-- id_table$Ensembl -->
+
+
+
+
+<!-- id_table_test <- intron_tar_ids %>% full_join(id_table, by = c("ensembl_gene_id" = "Ensembl")) -->
+
+<!-- ``` -->
+

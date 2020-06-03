@@ -1,0 +1,137 @@
+---
+title: "Comparison with Clotilde's 22 months RNA-seq"
+author: "Katharina Hembach"
+date: "1/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+suppressPackageStartupMessages({
+  library(here)
+  library(dplyr)
+  library(SingleCellExperiment)
+  library(rtracklayer)
+})
+```
+
+
+## Introduction
+
+Comparison of our DE genes from the polyA RNA-seq from 1 and 6 months old WT and FUS KI mice with data from Clotilde. The data comes from RNAseq of 22 months old WT and FUS KI mice of homogenate.
+
+We have the list of up- and downregulated genes (in KI compared to WT at 22months) and we want to compare them to our DE genes at 6 months in the synapse. We want to find out if any of the genes that are DE at 6 months and not deteatable in the homogenate are DE at 22 months in the homogenate. On explanation might be that at 6 months, we observe very early synaptic changes and affects of the FUS KI. At 22 months, the changes might be broader and even detectable in the homogenate?
+
+```{r}
+se <- "/home/Shared/data/seq/sonu_RNAseq/polyA_Aug2019/output/outputR/edgeR_dge.rds" 
+## Manually filtered list of target genes (genes on the wrong strand are removed)
+fus_targets <- "/home/Shared/data/seq/sonu_CLIPseq/clip_March2018/analysis/deduplicated/MA_plot_selection/top_peaks_loess_adjM_pValue_1e-05_gene_anno_manually_filtered.txt"
+
+rnaseq_dir <- "/home/Shared/data/seq/sonu_RNAseq/polyA_Aug2019/"
+clotdir <- here("clotilde_22month_RNAseq")
+
+fig_dir <- here("results", "comparison_clotilde")
+
+gtf_file <- "/home/Shared/data/annotation/Mouse/Ensembl_GRCm38.90/gtf/Mus_musculus.GRCm38.90.gtf"
+```
+
+We filter our up and down regulated genes.
+```{r}
+se <- readRDS(se)
+sg <- se$sg
+## Filter the significant DE genes
+de <- rowData(sg)[[10]] %>% as.data.frame %>% dplyr::filter(FDR <= 0.05) 
+up <- de %>% filter(logFC > 0) %>% dplyr::select(gene_id, gene_name)
+down <- de %>% filter(logFC < 0) %>% dplyr::select(gene_id, gene_name)
+```
+
+Clotildes up and down regulated genes:
+```{r}
+cup <- read.table(file.path(clotdir, "cKIvsWT_up.txt")) %>% pull()
+cdown <- read.table(file.path(clotdir, "cKIvsWT_down.txt")) %>% pull()
+```
+
+UpSet plot to visualize the overlap between the four sets.
+
+```{r}
+pdf(file.path(fig_dir, "UpSet_clotilde22months_SNS6months.pdf"), 
+    width = 6, height = 3)
+
+sets <- list(up_SNS = up$gene_id, down_SNS = down$gene_id, up_22months = cup, 
+             down_22months = cdown)
+comb_mat <- make_comb_mat(sets, mode = "distinct")
+col_size = comb_size(comb_mat)
+row_size = set_size(comb_mat)
+# comb_size(comb_mat)
+comb_order <- c(5,6,7,1,2,3,4)
+ups <- UpSet(comb_mat, comb_order = comb_order,
+             set_order = c("up_SNS", "down_SNS", "up_22months", "down_22months"),
+             comb_col = c("#882255", "#117733", "red2", "lightgreen", "black", 
+                          "black", "black" ),
+             pt_size = unit(5, "mm"),
+             right_annotation = upset_right_annotation(comb_mat, 
+              gp = gpar(fill = c("#882255", "#117733", "red2", "lightgreen"))))
+
+ups = draw(ups, padding = unit(c(2, 2, 5, 10), "mm"))
+
+col_od = column_order(ups)
+row_od = row_order(ups)
+
+decorate_annotation("Intersection\nsize", {
+	grid.text(col_size[col_od], 
+		seq_len(length(col_size)), 
+		unit(col_size[col_od], "native") + unit(2, "mm"), 
+		default.units = "native", just = "bottom",
+		gp = gpar(fontsize = 12))
+})
+decorate_annotation("Set size", {
+	grid.text(row_size[row_od], 
+		unit(row_size[row_od], "native") + unit(5, "mm"), 
+		rev(seq_len(length(row_size))), 
+		default.units = "native", just = "bottom",
+		gp = gpar(fontsize = 12))
+})
+dev.off()
+```
+
+![UpSet plot](../results/comparison_clotilde/UpSet_clotilde22months_SNS6months.pdf){width=75%}.
+
+What are the gene names of the overlapping IDs?
+
+```{r}
+gtf <- import(gtf_file)
+
+## match all IDs to gene names
+cup <- data.frame(gene_id = cup, 
+                  gene_name = gtf[match(cup, gtf$gene_id)]$gene_name)
+cdown <- data.frame(gene_id = cdown, 
+                  gene_name = match(cdown, gtf$gene_id))
+cdown$gene_name[!is.na(cdown$gene_name)] <- 
+  gtf[cdown$gene_name[!is.na(cdown$gene_name)]]$gene_name
+
+## overlap of SNS up and 22 months up
+up[up$gene_name %in% cup$gene_name, "gene_name"] %>% as.character()
+
+## overlap of SNS up and 22 months down
+up[up$gene_name %in% cdown$gene_name, "gene_name"] %>% as.character()
+
+## overlap of SNS down and 22 months up 
+down[down$gene_name %in% cup$gene_name, "gene_name"] %>% as.character()
+
+## overlap of SNS down and 22 months down
+down[down$gene_name %in% cdown$gene_name, "gene_name"] %>% as.character()
+```
+
+Are any of the up- or downregulated genes from the 22 months old mice FUS targets from our CLIP-seq?
+
+```{r}
+fus_genes <- read.table(fus_targets, header = TRUE)
+## FUS target genes among the 22 months up-regulated genes
+fus_genes[fus_genes$gene_name %in% cup$gene_name, "gene_name"] %>% as.character()
+## FUS target genes among the 22 months down-regulated genes
+fus_genes[fus_genes$gene_name %in% cdown$gene_name, "gene_name"] %>% as.character()
+```
+

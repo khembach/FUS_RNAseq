@@ -1,0 +1,21 @@
+._*
+.DS_Store
+.Rhistory
+*.html
+*.png
+Rmd/de_analysis_cache/
+Rmd/de_analysis_figures/
+Rmd/de_analysis_files/
+Rmd/img/
+Rmd/rds/
+*RNA Samples for Sequencing 2019*
+.here
+.snakemake/
+FASTQ
+output
+mass_spec/*png
+mass_spec/png
+results/
+reference
+clotilde_22month_RNAseq
+mass_spec
